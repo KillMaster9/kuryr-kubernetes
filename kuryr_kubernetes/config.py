@@ -114,7 +114,7 @@ k8s_opts = [
     cfg.StrOpt('pod_subnets_driver',
                help=_("The driver to determine Neutron "
                       "subnets for pod ports"),
-               default='default'),
+               default='namespace'),
     cfg.StrOpt('service_subnets_driver',
                help=_("The driver to determine Neutron "
                       "subnets for services"),
@@ -129,7 +129,7 @@ k8s_opts = [
                default='default'),
     cfg.StrOpt('pod_vif_driver',
                help=_("The driver that provides VIFs for Kubernetes Pods."),
-               default='neutron-vif'),
+               default='nested-vlan'),
     cfg.StrOpt('endpoints_lbaas_driver',
                help=_("The driver that provides LoadBalancers for "
                       "Kubernetes Endpoints"),
@@ -148,7 +148,7 @@ k8s_opts = [
     cfg.BoolOpt('port_debug',
                 help=_('Enable port debug to force kuryr port names to be '
                        'set to their corresponding pod names.'),
-                default=False),
+                default=True),
     cfg.StrOpt('service_public_ip_driver',
                help=_("The driver that provides external IP for LB at "
                       "Kubernetes"),
