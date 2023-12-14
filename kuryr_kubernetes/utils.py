@@ -93,6 +93,8 @@ RESOURCE_MAP = {'Endpoints': 'endpoints',
                 'Machine': 'machines'}
 API_RE = re.compile(r'v\d+')
 
+SUPPORTED_SERVICE_TYPES = ('ClusterIP', 'LoadBalancer')
+
 
 def get_klb_crd_path(obj):
     """Return klb crd path from provided resource"""
@@ -557,7 +559,7 @@ def clean_lb_crd_status(loadbalancer_name):
     k8s = clients.get_kubernetes_client()
     try:
         k8s.patch_crd('status', f'{constants.K8S_API_CRD_NAMESPACES}'
-                      f'/{namespace}/kuryrloadbalancers/{name}', {})
+                                f'/{namespace}/kuryrloadbalancers/{name}', {})
     except exceptions.K8sResourceNotFound:
         LOG.debug('KuryrLoadbalancer CRD not found %s',
                   name)
@@ -636,3 +638,38 @@ def get_subnet_by_ip(nodes_subnets, target_ip):
             return nodes_subnet
 
     return None
+
+
+def get_services_by_name(name, namespace=None):
+    kubernetes = clients.get_kubernetes_client()
+    try:
+        if namespace:
+            service = kubernetes.get(
+                '{}/namespaces/{}/services/{}'.format(constants.K8S_API_BASE,
+                                                      namespace, name))
+        else:
+            service = kubernetes.get(
+                '{}/services/{}'.format(constants.K8S_API_BASE, name))
+    except exceptions.K8sResourceNotFound:
+        LOG.debug("Service not found: %s", namespace.name)
+        return None
+    except exceptions.K8sClientException:
+        LOG.exception('Exception when getting K8s services.')
+        raise
+    return service
+
+
+def is_headless_service(obj):
+    name = obj['metadata']['name']
+    namespace = obj['metadata']['namespace']
+
+    if name == 'kubernetes' and namespace == 'default':
+        return True
+
+    service = get_services_by_name(name, namespace)
+    if (service is None or
+            service['spec'].get('clusterIP') == 'None' or
+            not service['spec'].get('type') in SUPPORTED_SERVICE_TYPES):
+        return True
+
+    return False

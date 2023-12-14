@@ -312,6 +312,7 @@ class EndpointsHandler(k8s_base.ResourceEventHandler):
                                                loadbalancer_crd.get('status')))
                 or k_const.K8S_ANNOTATION_HEADLESS_SERVICE
                 in endpoints['metadata'].get('labels', []) or
+                utils.is_headless_service(endpoints) or
                 utils.is_kubernetes_default_resource(endpoints)):
             LOG.debug("Ignoring Kubernetes endpoints %s",
                       endpoints['metadata']['name'])

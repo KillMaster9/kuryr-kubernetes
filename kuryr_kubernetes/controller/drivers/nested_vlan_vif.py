@@ -269,6 +269,10 @@ class NestedVlanPodVIFDriver(nested_vif.NestedPodVIFDriver):
             subports_body.append({'port_id': subport_id})
         try:
             os_net.delete_trunk_subports(trunk_id, subports_body)
+
+        except os_exc.ResourceNotFound:
+            LOG.warning("Warning happend during subport remove from trunk,  Resource Not Found %s",subport_id)
+            return
         except os_exc.SDKException:
             LOG.exception("Error happened during subport removal from "
                           "trunk %s", trunk_id)
