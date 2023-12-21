@@ -16,7 +16,10 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from openstack import exceptions as os_exc
+
 from kuryr_kubernetes import config
+from kuryr_kubernetes import clients
 from kuryr_kubernetes.controller.drivers import base
 
 LOG = logging.getLogger(__name__)
@@ -33,8 +36,19 @@ class DefaultPodSecurityGroupsDriver(base.PodSecurityGroupsDriver):
             # Default{Pod,Service}SecurityGroupsDriver and its subclasses,
             # but it may be optional for other drivers (e.g. when each
             # namespace has own set of security groups)
-            raise cfg.RequiredOptError('pod_security_groups',
-                                       cfg.OptGroup('neutron_defaults'))
+            default_sg_name = 'default'
+            sg_query = {'project_id': project_id}
+
+            os_net = clients.get_network_client()
+            try:
+                sg = os_net.find_security_group(default_sg_name, False, sg_query)
+                if sg is not None:
+                    return sg.id
+
+            except (os_exc.SDKException, os_exc.ResourceNotFound):
+                LOG.exception("Pod security groups not found. project id is %s", project_id)
+                raise cfg.RequiredOptError('pod_security_groups',
+                                           cfg.OptGroup('neutron_defaults'))
 
         return sg_list[:]
 

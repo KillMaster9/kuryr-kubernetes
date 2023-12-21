@@ -134,7 +134,9 @@ class KuryrLoadBalancerHandler(k8s_base.ResourceEventHandler):
                                 loadbalancer_crd in loadbalancer_crds]
         lbaas = clients.get_loadbalancer_client()
         lbaas_spec = {}
+        # Tag is very impotent.
         self._drv_lbaas.add_tags('loadbalancer', lbaas_spec)
+
         loadbalancers = lbaas.load_balancers(**lbaas_spec)
         loadbalancers_id = [loadbalancer['id']
                             for loadbalancer in loadbalancers]

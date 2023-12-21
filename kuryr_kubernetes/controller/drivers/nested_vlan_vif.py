@@ -28,7 +28,6 @@ from kuryr_kubernetes.controller.drivers import utils
 from kuryr_kubernetes import exceptions as k_exc
 from kuryr_kubernetes import os_vif_util as ovu
 
-
 LOG = logging.getLogger(__name__)
 
 DEFAULT_MAX_RETRY_COUNT = 3
@@ -177,7 +176,8 @@ class NestedVlanPodVIFDriver(nested_vif.NestedPodVIFDriver):
             port_req_body['security_groups'] = security_groups
 
         if self._tag_on_creation:
-            tags = CONF.neutron_defaults.resource_tags
+            # tags = CONF.neutron_defaults.resource_tags
+            tags = utils.get_port_tag(pod)
             if tags:
                 port_req_body['tags'] = tags
 
@@ -271,7 +271,7 @@ class NestedVlanPodVIFDriver(nested_vif.NestedPodVIFDriver):
             os_net.delete_trunk_subports(trunk_id, subports_body)
 
         except os_exc.ResourceNotFound:
-            LOG.warning("Warning happend during subport remove from trunk,  Resource Not Found %s",subport_id)
+            LOG.warning("Warning happend during subport remove from trunk,  Resource Not Found %s", subport_id)
             return
         except os_exc.SDKException:
             LOG.exception("Error happened during subport removal from "

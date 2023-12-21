@@ -248,7 +248,7 @@ octavia_defaults = [
     cfg.StrOpt('member_mode',
                help=_("Define the communication mode between load balanacer "
                       "and its members"),
-               default='L3'),
+               default='L2'),
     cfg.BoolOpt('enforce_sg_rules',
                 help=_("Enable the enforcement of SG rules at the LB SG "
                        "in case the LB does not maintain the source IP "

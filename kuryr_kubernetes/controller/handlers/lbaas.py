@@ -27,7 +27,8 @@ from kuryr_kubernetes import utils
 
 LOG = logging.getLogger(__name__)
 
-SUPPORTED_SERVICE_TYPES = ('ClusterIP', 'LoadBalancer')
+# Kuryr is no longer processing LoadBalancer Service.The LoadBalancer svc processed by CCM controller.
+SUPPORTED_SERVICE_TYPES = 'ClusterIP'
 
 
 class ServiceHandler(k8s_base.ResourceEventHandler):
@@ -64,6 +65,13 @@ class ServiceHandler(k8s_base.ResourceEventHandler):
         except k_exc.K8sClientException as ex:
             LOG.exception("Failed to set service finalizer: %s", ex)
             raise
+
+        # If the service type changed.
+        # Case1: clusterIP ---> Loadbalancer
+        # Case2: clusterIP ---> Nodeport/headless
+        # Case3: Loadbalancer ---> clusterIP
+        # Case4: Loadbalancer ---> Nodeport/headless
+        # Case5: Nodeport/headless ---> clusterIP/Loadbalancer √
 
         if loadbalancer_crd is None:
             try:
@@ -263,8 +271,8 @@ class ServiceHandler(k8s_base.ResourceEventHandler):
         cli_timeout, mem_timeout = self._get_data_timeout_annotation(service)
 
         for spec_value, current_value in [(loadbalancer_crd['spec'].get(
-            'timeout_client_data'), cli_timeout), (loadbalancer_crd[
-                'spec'].get('timeout_member_data'), mem_timeout)]:
+                'timeout_client_data'), cli_timeout), (loadbalancer_crd[
+                                                           'spec'].get('timeout_member_data'), mem_timeout)]:
             if not spec_value and not current_value:
                 continue
             elif spec_value != current_value:

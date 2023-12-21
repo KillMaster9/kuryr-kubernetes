@@ -28,7 +28,6 @@ from kuryr_kubernetes import constants
 from kuryr_kubernetes import exceptions as k_exc
 from kuryr_kubernetes import utils
 
-
 OPERATORS_WITH_VALUES = [constants.K8S_OPERATOR_IN,
                          constants.K8S_OPERATOR_NOT_IN]
 
@@ -224,7 +223,7 @@ def check_tag_on_creation():
     """
     os_net = clients.get_network_client()
     extension = os_net.find_extension(
-            name_or_id='tag-ports-during-bulk-creation')
+        name_or_id='tag-ports-during-bulk-creation')
     return bool(extension)
 
 
@@ -262,7 +261,6 @@ def create_security_group_rule_body(
         ethertype='IPv4', cidr=None,
         description="Kuryr-Kubernetes NetPolicy SG rule", namespace=None,
         pods=None):
-
     if port_range_min and not port_range_max:
         port_range_max = port_range_min
 
@@ -300,11 +298,11 @@ def get_pod_ip(pod):
     except (KeyError, TypeError, IndexError):
         return None
     return (vif['versioned_object.data']['network']
-            ['versioned_object.data']['subnets']
-            ['versioned_object.data']['objects'][0]
-            ['versioned_object.data']['ips']
-            ['versioned_object.data']['objects'][0]
-            ['versioned_object.data']['address'])
+    ['versioned_object.data']['subnets']
+    ['versioned_object.data']['objects'][0]
+    ['versioned_object.data']['ips']
+    ['versioned_object.data']['objects'][0]
+    ['versioned_object.data']['address'])
 
 
 def get_annotations(resource, annotation):
@@ -323,7 +321,6 @@ def get_annotated_labels(resource, annotation_labels):
 
 
 def get_kuryrnetworkpolicy_crds(namespace=None):
-
     try:
         if namespace:
             knp_path = '{}/{}/kuryrnetworkpolicies'.format(
@@ -680,3 +677,24 @@ def is_network_policy_enabled():
     enabled_handlers = CONF.kubernetes.enabled_handlers
     svc_sg_driver = CONF.kubernetes.service_security_groups_driver
     return 'policy' in enabled_handlers and svc_sg_driver == 'policy'
+
+
+def get_port_tag(pod):
+    # get pod namespace and podName
+    pod_name = pod['metadata']['name']
+    ns_name = pod['metadata']['namespace']
+    if not ns_name:
+        ns_name = "default"
+
+    namespace = get_namespace(ns_name)
+    if namespace is None:
+        LOG.warning("Namespace not found %s", ns_name)
+        return "%s_%s_%s" % (constants.K8S_TAG_PREFIX, ns_name, pod_name)
+
+    runtime_id = namespace['metadata'].get('annotations', {}).get(constants.K8s_ANNOTATION_POD_RUNTIME_ID)
+    if not runtime_id:
+        LOG.warning("Runtime_id not found %s-%s", ns_name, pod_name)
+        return "%s_%s_%s" % (constants.K8S_TAG_PREFIX, ns_name, pod_name)
+
+    return "%s_%s_%s_%s" % (constants.K8S_TAG_PREFIX, runtime_id, ns_name, pod_name)
+

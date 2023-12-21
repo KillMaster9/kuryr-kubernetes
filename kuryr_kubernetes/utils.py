@@ -93,7 +93,7 @@ RESOURCE_MAP = {'Endpoints': 'endpoints',
                 'Machine': 'machines'}
 API_RE = re.compile(r'v\d+')
 
-SUPPORTED_SERVICE_TYPES = ('ClusterIP', 'LoadBalancer')
+SUPPORTED_SERVICE_TYPES = 'ClusterIP'
 
 
 def get_klb_crd_path(obj):
