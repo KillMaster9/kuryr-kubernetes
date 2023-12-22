@@ -175,7 +175,8 @@ class NestedVlanPodVIFDriver(nested_vif.NestedPodVIFDriver):
         if security_groups:
             port_req_body['security_groups'] = security_groups
 
-        if self._tag_on_creation:
+        # self._tag_on_creation
+        if True:
             # tags = CONF.neutron_defaults.resource_tags
             tags = utils.get_port_tag(pod)
             if tags:

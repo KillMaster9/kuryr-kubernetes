@@ -698,3 +698,18 @@ def get_port_tag(pod):
 
     return "%s_%s_%s_%s" % (constants.K8S_TAG_PREFIX, runtime_id, ns_name, pod_name)
 
+
+def get_default_security_groups(project_id):
+    default_sg_name = 'default'
+    sg_query = {'project_id': project_id}
+
+    os_net = clients.get_network_client()
+    try:
+        sg = os_net.get_security_group(default_sg_name, sg_query)
+        if sg is not None:
+            return sg.id
+
+    except (os_exc.SDKException, os_exc.ResourceNotFound):
+        LOG.exception("Pod security groups not found. project id is %s", project_id)
+        raise cfg.RequiredOptError('pod_security_groups',
+                                   cfg.OptGroup('neutron_defaults'))

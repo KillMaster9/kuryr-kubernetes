@@ -20,7 +20,7 @@ from openstack import exceptions as os_exc
 
 from kuryr_kubernetes import config
 from kuryr_kubernetes import clients
-from kuryr_kubernetes.controller.drivers import base
+from kuryr_kubernetes.controller.drivers import base, utils
 
 LOG = logging.getLogger(__name__)
 
@@ -36,19 +36,12 @@ class DefaultPodSecurityGroupsDriver(base.PodSecurityGroupsDriver):
             # Default{Pod,Service}SecurityGroupsDriver and its subclasses,
             # but it may be optional for other drivers (e.g. when each
             # namespace has own set of security groups)
-            default_sg_name = 'default'
-            sg_query = {'project_id': project_id}
+            default_sg_id = utils.get_default_security_groups(project_id)
+            if len(default_sg_id):
+                return default_sg_id
 
-            os_net = clients.get_network_client()
-            try:
-                sg = os_net.find_security_group(default_sg_name, False, sg_query)
-                if sg is not None:
-                    return sg.id
-
-            except (os_exc.SDKException, os_exc.ResourceNotFound):
-                LOG.exception("Pod security groups not found. project id is %s", project_id)
-                raise cfg.RequiredOptError('pod_security_groups',
-                                           cfg.OptGroup('neutron_defaults'))
+            raise cfg.RequiredOptError('pod_security_groups',
+                                       cfg.OptGroup('neutron_defaults'))
 
         return sg_list[:]
 
@@ -89,6 +82,11 @@ class DefaultServiceSecurityGroupsDriver(base.ServiceSecurityGroupsDriver):
             # Default{Pod,Service}SecurityGroupsDriver and its subclasses,
             # but it may be optional for other drivers (e.g. when each
             # namespace has own set of security groups)
+
+            default_sg_id = utils.get_default_security_groups(project_id)
+            if len(default_sg_id):
+                return default_sg_id
+
             raise cfg.RequiredOptError('pod_security_groups',
                                        cfg.OptGroup('neutron_defaults'))
 
