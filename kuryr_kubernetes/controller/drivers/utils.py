@@ -701,11 +701,10 @@ def get_port_tag(pod):
 
 def get_default_security_groups(project_id):
     default_sg_name = 'default'
-    sg_query = {'project_id': project_id}
 
     os_net = clients.get_network_client()
     try:
-        sg = os_net.get_security_group(default_sg_name, sg_query)
+        sg = os_net.find_security_group(default_sg_name, False, project_id=project_id)
         if sg is not None:
             return sg.id
 
