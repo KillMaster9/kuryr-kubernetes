@@ -38,7 +38,7 @@ class DefaultPodSecurityGroupsDriver(base.PodSecurityGroupsDriver):
             # namespace has own set of security groups)
             default_sg_id = utils.get_default_security_groups(project_id)
             if len(default_sg_id):
-                return default_sg_id
+                return default_sg_id[:]
 
             raise cfg.RequiredOptError('pod_security_groups',
                                        cfg.OptGroup('neutron_defaults'))
