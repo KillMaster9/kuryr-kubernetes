@@ -16,10 +16,7 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 
-from openstack import exceptions as os_exc
-
 from kuryr_kubernetes import config
-from kuryr_kubernetes import clients
 from kuryr_kubernetes.controller.drivers import base, utils
 
 LOG = logging.getLogger(__name__)
@@ -29,6 +26,8 @@ class DefaultPodSecurityGroupsDriver(base.PodSecurityGroupsDriver):
     """Provides security groups for Pod based on a configuration option."""
 
     def get_security_groups(self, pod, project_id):
+        # Notice: we support the security_groups is None. means disable-security-group.But the pool of port
+        # must need security_group_id. what can we do?
         sg_list = config.CONF.neutron_defaults.pod_security_groups
 
         if not sg_list:
@@ -36,12 +35,14 @@ class DefaultPodSecurityGroupsDriver(base.PodSecurityGroupsDriver):
             # Default{Pod,Service}SecurityGroupsDriver and its subclasses,
             # but it may be optional for other drivers (e.g. when each
             # namespace has own set of security groups)
-            default_sg_id = utils.get_default_security_groups(project_id)
-            if len(default_sg_id):
-                return default_sg_id[:]
 
-            raise cfg.RequiredOptError('pod_security_groups',
-                                       cfg.OptGroup('neutron_defaults'))
+            # default_sg_id = utils.get_default_security_groups(project_id)
+            # if len(default_sg_id):
+            #     return default_sg_id
+            #
+            # raise cfg.RequiredOptError('pod_security_groups',
+            #                            cfg.OptGroup('neutron_defaults'))
+             return None
 
         return sg_list[:]
 

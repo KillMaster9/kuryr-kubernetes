@@ -208,8 +208,11 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
         pool_key = self._get_pool_key(host_addr, project_id, None, subnets)
 
         try:
-            return self._get_port_from_pool(pool_key, pod, subnets,
-                                            tuple(sorted(security_groups)))
+            if not security_groups:
+                return self._get_port_from_pool(pool_key, pod, subnets, None)
+            else:
+                return self._get_port_from_pool(pool_key, pod, subnets,
+                                                tuple(sorted(security_groups)))
         except exceptions.ResourceNotReady:
             LOG.debug("Ports pool does not have available ports: %s", pool_key)
             # NOTE(dulek): We're passing raise_not_ready=False because this
@@ -421,8 +424,8 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
             else:
                 # Filter to only get subports that are not in use
                 if (port.id not in in_use_ports and
-                    port.device_owner in ['trunk:subport',
-                                          kl_const.DEVICE_OWNER]):
+                        port.device_owner in ['trunk:subport',
+                                              kl_const.DEVICE_OWNER]):
                     subports[port.id] = port
                     # NOTE(ltomasbo): _get_subnet can be costly as it
                     # needs to call neutron to get network and subnet
@@ -690,7 +693,7 @@ class NeutronVIFPool(BaseVIFPool):
 
         for port_id, pool_key in list(self._recyclable_ports.items()):
             if (not oslo_cfg.CONF.vif_pool.ports_pool_max or
-                self._get_pool_size(pool_key) <
+                    self._get_pool_size(pool_key) <
                     oslo_cfg.CONF.vif_pool.ports_pool_max):
                 port_name = (constants.KURYR_PORT_NAME
                              if config.CONF.kubernetes.port_debug
@@ -706,7 +709,7 @@ class NeutronVIFPool(BaseVIFPool):
                         continue
                 self._available_ports_pools.setdefault(
                     pool_key, {}).setdefault(
-                        sg_current.get(port_id), []).append(port_id)
+                    sg_current.get(port_id), []).append(port_id)
             else:
                 try:
                     del self._existing_vifs[port_id]
@@ -767,7 +770,7 @@ class NeutronVIFPool(BaseVIFPool):
             self._existing_vifs[port.id] = vif
             self._available_ports_pools.setdefault(
                 pool_key, {}).setdefault(
-                    tuple(sorted(port.security_group_ids)), []).append(port.id)
+                tuple(sorted(port.security_group_ids)), []).append(port.id)
 
         LOG.info("PORTS POOL: pools updated with pre-created ports")
         self._create_healthcheck_file()
@@ -897,7 +900,11 @@ class NestedVIFPool(BaseVIFPool):
                     # pool is empty, no port to reuse
                     raise exceptions.ResourceNotReady(pod)
                 port_id = pool_ports[min_sg_group].pop()
-            os_net.update_port(port_id, security_groups=list(security_groups))
+            if not security_groups:
+                os_net.update_port(port_id, security_groups=None)
+            else:
+                os_net.update_port(port_id, security_groups=list(security_groups))
+
         if config.CONF.kubernetes.port_debug:
             os_net.update_port(port_id, name=c_utils.get_port_name(pod))
         # check if the pool needs to be populated
@@ -956,7 +963,7 @@ class NestedVIFPool(BaseVIFPool):
 
         for port_id, pool_key in list(self._recyclable_ports.items()):
             if (not oslo_cfg.CONF.vif_pool.ports_pool_max or
-                self._get_pool_size(pool_key) <
+                    self._get_pool_size(pool_key) <
                     oslo_cfg.CONF.vif_pool.ports_pool_max):
                 port_name = (constants.KURYR_PORT_NAME
                              if config.CONF.kubernetes.port_debug
@@ -971,7 +978,7 @@ class NestedVIFPool(BaseVIFPool):
                         continue
                 self._available_ports_pools.setdefault(
                     pool_key, {}).setdefault(
-                        sg_current.get(port_id), []).append(port_id)
+                    sg_current.get(port_id), []).append(port_id)
             else:
                 trunk_id = self._get_trunk_id(pool_key)
                 try:
@@ -1078,8 +1085,8 @@ class NestedVIFPool(BaseVIFPool):
                     self._existing_vifs[kuryr_subport.id] = vif
                     self._available_ports_pools.setdefault(
                         pool_key, {}).setdefault(tuple(sorted(
-                            kuryr_subport.security_group_ids)),
-                            []).append(kuryr_subport.id)
+                        kuryr_subport.security_group_ids)),
+                        []).append(kuryr_subport.id)
 
                 elif action == 'free':
                     try:
@@ -1113,8 +1120,8 @@ class NestedVIFPool(BaseVIFPool):
             # NOTE(ltomasbo): If the amount of nodes is large the repopulation
             # actions may take too long. Using half of the batch to prevent
             # the problem
-            num_ports = int(max(oslo_cfg.CONF.vif_pool.ports_pool_batch/2,
-                            oslo_cfg.CONF.vif_pool.ports_pool_min))
+            num_ports = int(max(oslo_cfg.CONF.vif_pool.ports_pool_batch / 2,
+                                oslo_cfg.CONF.vif_pool.ports_pool_min))
             self.force_populate_pool(trunk_ip, project_id, subnets,
                                      security_groups, num_ports)
 

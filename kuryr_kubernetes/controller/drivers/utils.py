@@ -700,13 +700,14 @@ def get_port_tag(pod):
 
 
 def get_default_security_groups(project_id):
+    sg_list = []
     default_sg_name = 'default'
 
     os_net = clients.get_network_client()
     try:
         sg = os_net.find_security_group(default_sg_name, False, project_id=project_id)
         if sg is not None:
-            return sg.id
+            return sg_list.append(sg.id)
 
     except (os_exc.SDKException, os_exc.ResourceNotFound):
         LOG.exception("Pod security groups not found. project id is %s", project_id)

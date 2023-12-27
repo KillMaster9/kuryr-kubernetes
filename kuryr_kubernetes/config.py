@@ -98,11 +98,11 @@ k8s_opts = [
     cfg.StrOpt('pod_project_driver',
                help=_("The driver to determine OpenStack "
                       "project for pod ports"),
-               default='default'),
+               default='namespace'),
     cfg.StrOpt('service_project_driver',
                help=_("The driver to determine OpenStack "
                       "project for services"),
-               default='default'),
+               default='namespace'),
     cfg.StrOpt('namespace_project_driver',
                help=_("The driver to determine OpenStack "
                       "project for namespaces"),
