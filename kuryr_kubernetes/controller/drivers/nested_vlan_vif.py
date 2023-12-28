@@ -174,6 +174,8 @@ class NestedVlanPodVIFDriver(nested_vif.NestedPodVIFDriver):
 
         if security_groups:
             port_req_body['security_groups'] = security_groups
+        else:
+            port_req_body['port_security_enabled'] = False
 
         # self._tag_on_creation
         if self._tag_on_creation:

@@ -25,27 +25,37 @@ LOG = logging.getLogger(__name__)
 
 
 class AnnotationProjectBaseDriver(
-        base.PodProjectDriver, base.ServiceProjectDriver,
-        base.NamespaceProjectDriver, base.NetworkPolicyProjectDriver):
+    base.PodProjectDriver, base.ServiceProjectDriver,
+    base.NamespaceProjectDriver, base.NetworkPolicyProjectDriver):
     """Provides project ID based on resource's annotation."""
 
     project_annotation = constants.K8s_ANNOTATION_PROJECT
 
     def _get_namespace_project(self, namespace):
-        ns_md = namespace['metadata']
+        try:
+            ns_md = namespace['metadata']
+        except TypeError:
+            project = config.CONF.neutron_defaults.project
+            if not project:
+                raise cfg.RequiredOptError('project',
+                                           cfg.OptGroup('neutron_defaults'))
+            return project
+
         project = ns_md.get('annotations', {}).get(self.project_annotation)
         if not project:
             LOG.debug("Namespace %s has no project annotation, try to get "
                       "project id from the configuration option.",
                       namespace['metadata']['name'])
             project = config.CONF.neutron_defaults.project
-        if not project:
-            raise cfg.RequiredOptError('project',
-                                       cfg.OptGroup('neutron_defaults'))
+            if not project:
+                raise cfg.RequiredOptError('project',
+                                           cfg.OptGroup('neutron_defaults'))
         return project
 
     def get_project(self, resource):
         res_ns = resource['metadata']['namespace']
+        if not res_ns:
+            res_ns = 'default'
         namespace_path = f"{constants.K8S_API_NAMESPACES}/{res_ns}"
         namespace = driver_utils.get_k8s_resource(namespace_path)
         return self._get_namespace_project(namespace)

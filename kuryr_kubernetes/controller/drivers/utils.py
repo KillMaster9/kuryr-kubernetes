@@ -327,7 +327,7 @@ def get_kuryrnetworkpolicy_crds(namespace=None):
                 constants.K8S_API_CRD_NAMESPACES, namespace)
         else:
             knp_path = constants.K8S_API_CRD_KURYRNETWORKPOLICIES
-        knps = get_k8s_resource(knp_path)
+        knps = get_k8s_resources(knp_path)
         LOG.debug("Returning KuryrNetworkPolicies %s", knps)
     except k_exc.K8sClientException:
         LOG.exception("Exception during fetch KuryrNetworkPolicies. Retrying.")
@@ -341,11 +341,22 @@ def get_kuryrloadbalancer_crds(namespace=None):
             constants.K8S_API_CRD_KURYRLOADBALANCERS, namespace)
     else:
         klb_path = constants.K8S_API_CRD_KURYRLOADBALANCERS
-    klbs = get_k8s_resource(klb_path)
+    klbs = get_k8s_resources(klb_path)
     return klbs
 
 
 def get_k8s_resource(resource_path):
+    kubernetes = clients.get_kubernetes_client()
+    k8s_resource = {}
+    try:
+        k8s_resource = kubernetes.get(resource_path)
+    except k_exc.K8sResourceNotFound:
+        LOG.exception('Kubernetes CRD not found')
+        return k8s_resource
+    return k8s_resource
+
+
+def get_k8s_resources(resource_path):
     kubernetes = clients.get_kubernetes_client()
     k8s_resource = {}
     try:
