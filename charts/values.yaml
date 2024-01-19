@@ -1,0 +1,146 @@
+# Default values for kuryr.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# To configure kuryr, you must specify ONE of the following two
+# options.
+
+# existingConfigMap specifies the name of an externally-defined
+# ConfigMap to use as the configuration. Helm will not manage the
+# contents of this ConfigMap, it is your responsibility to create it.
+existingConfigMap: ""
+
+# configInline specifies Kuryr's configuration directly, in yaml
+# format. When configInline is used, Helm manages kuryr's
+# configuration ConfigMap as part of the release, and
+# existingConfigMap is ignored.
+#
+#configInline: {}
+
+rbac:
+  # create specifies whether to install and use RBAC rules.
+  create: true
+
+# create the kuryr-controller deployment
+controller:
+  enabled: true
+  #default the kuryr-controller's replices is 1
+  autoscaling:
+    enabled:
+    replicaCount:
+  image:
+    repository: quay.io/kuryr/controller
+    tag:
+    pullPolicy:
+  serviceAccount:
+    # Specifies whether a ServiceAccount should be created
+    create: true
+    # The name of the ServiceAccount to use. If not set and create is
+    # true, a name is generated using the fullname template
+    name: ""
+    annotations: { }
+
+  resources: { }
+  # limits:
+  # cpu: 100m
+  # memory: 100Mi
+  nodeSelector: { }
+  tolerations: [ ]
+  priorityClassName: ""
+  affinity: { }
+  ## Selects which runtime class will be used by the pod.
+  # runtimeClassName:
+  podAnnotations: { }
+  livenessProbe:
+    enabled: true
+    failureThreshold: 3
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  readinessProbe:
+    enabled: true
+    failureThreshold: 3
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 5
+  volumeMounts: [ ]
+  volumes: [ ]
+
+# cni contains configuration specific to the Kuryr CNI
+# daemonset.
+cni:
+  enabled: true
+  image:
+    repository: quay.io/kuryr/cni
+    tag:
+    pullPolicy:
+  serviceAccount:
+    # Specifies whether a ServiceAccount should be created
+    create: true
+    # The name of the ServiceAccount to use. If not set and create is
+    # true, a name is generated using the fullname template
+    name: ""
+    annotations: { }
+
+  resources: { }
+    # limits:
+  # cpu: 100m
+  # memory: 100Mi
+  nodeSelector: { }
+  tolerations: [ ]
+  priorityClassName: ""
+  affinity: { }
+  ## Selects which runtime class will be used by the pod.
+  # runtimeClassName:
+  podAnnotations: { }
+  livenessProbe:
+    enabled: true
+    failureThreshold: 3
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 1
+  readinessProbe:
+    enabled: true
+    failureThreshold: 3
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 10
+
+# kuryr-config. It is a ini config file.
+config:
+  # The kuryr-controller log level,bool, default is debug = true.
+  debug:
+  # The kubernetes apiserver address. default is 127.0.0.1:6443
+  kubernetes:
+    k8sApiRoot:
+  # The neutron auth config
+  neutron:
+    # default is "default"
+    projectDomainName:
+    projectId:
+    # default is "default"
+    userDomainName:
+    # default is "neutron"
+    userName:
+    # default is "Inspur1!"
+    password:
+    authURL:
+    # default is "password"
+    authType:
+  neutronDefaults:
+    serviceSubnet:
+    podSecurityGroups:
+    podSubnetId:
+    project:
+  podVifNested:
+    workerNodesSubnets:
+  binding:
+    linkIface:
