@@ -24,6 +24,8 @@ RUN dnf upgrade -y && dnf install -y epel-release $RDO_REPO \
 
 COPY . /opt/kuryr-kubernetes
 
+RUN chmod 777 /opt/kuryr-kubernetes/cni_ds_init
+
 RUN pip3 --no-cache-dir install -U pip \
     && python3 -m pip --no-cache-dir install -c $UPPER_CONSTRAINTS_FILE /opt/kuryr-kubernetes \
     && cp /opt/kuryr-kubernetes/cni_ds_init /usr/bin/cni_ds_init \

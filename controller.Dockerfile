@@ -22,6 +22,5 @@ RUN pip3 --no-cache-dir install -U pip \
          -c "Kuryr controller user" \
          kuryr
 
-USER kuryr
 CMD ["--config-dir", "/etc/kuryr"]
 ENTRYPOINT [ "kuryr-k8s-controller" ]
