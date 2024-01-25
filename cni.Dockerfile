@@ -1,9 +1,10 @@
-FROM quay.io/kuryr/golang:1.16 as builder
+FROM golang:1.21-alpine as builder
 
 WORKDIR /go/src/opendev.com/kuryr-kubernetes
 COPY . .
 
 RUN GO111MODULE=auto go build -o /go/bin/kuryr-cni ./kuryr_cni/pkg/*
+RUN GO111MODULE=auto go build -o /go/bin/coordinator ./coordinator/*
 
 FROM quay.io/centos/centos:stream8
 LABEL authors="Antoni Segura Puimedon<toni@kuryr.org>, Michał Dulko<mdulko@redhat.com>"
@@ -37,6 +38,7 @@ RUN pip3 --no-cache-dir install -U pip \
     && mkdir ${OSLO_LOCK_PATH}
 
 COPY --from=builder /go/bin/kuryr-cni /kuryr-cni
+COPY --from=builder /go/bin/coordinator /coordinator
 
 ARG CNI_DAEMON=True
 ENV CNI_DAEMON ${CNI_DAEMON}
