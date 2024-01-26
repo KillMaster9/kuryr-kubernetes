@@ -6,7 +6,6 @@ COPY . .
 RUN GO111MODULE=auto go build -o /go/bin/kuryr-cni ./kuryr_cni/pkg/*
 
 RUN cd /go/src/opendev.com/kuryr-kubernetes/coordinator \
-    && go mod vendor \
     && go mod tidy \
     && GO111MODULE=auto go build -o /go/bin/coordinator .
 #RUN GO111MODULE=auto go build -o /go/bin/coordinator ./coordinator/main.go
