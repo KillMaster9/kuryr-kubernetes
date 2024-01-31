@@ -207,19 +207,20 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
 
         pool_key = self._get_pool_key(host_addr, project_id, None, subnets)
 
+        if not security_groups:
+            tuple_sg = None
+        else:
+            tuple_sg = tuple(sorted(security_groups))
         try:
-            if not security_groups:
-                return self._get_port_from_pool(pool_key, pod, subnets, None)
-            else:
-                return self._get_port_from_pool(pool_key, pod, subnets,
-                                                tuple(sorted(security_groups)))
+            return self._get_port_from_pool(pool_key, pod, subnets,
+                                            tuple_sg)
         except exceptions.ResourceNotReady:
             LOG.debug("Ports pool does not have available ports: %s", pool_key)
             # NOTE(dulek): We're passing raise_not_ready=False because this
             #              will be run outside of handlers thread, so raising
             #              it will only result in an ugly log from eventlet.
             eventlet.spawn(self._populate_pool, pool_key, pod, subnets,
-                           tuple(sorted(security_groups)),
+                           tuple_sg,
                            raise_not_ready=False)
             raise
 
@@ -266,7 +267,7 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
                 self._existing_vifs[vif.id] = vif
                 self._available_ports_pools.setdefault(
                     pool_key, {}).setdefault(
-                        security_groups, []).append(vif.id)
+                    security_groups, []).append(vif.id)
             if not vifs:
                 self._last_update[pool_key] = {security_groups: last_update}
 
