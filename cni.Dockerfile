@@ -4,11 +4,12 @@ WORKDIR /go/src/opendev.com/kuryr-kubernetes
 COPY . .
 
 RUN GO111MODULE=auto go build -o /go/bin/kuryr-cni ./kuryr_cni/pkg/*
+COPY ./coordinator/coordinator  /go/bin/coordinator
 
-RUN cd /go/src/opendev.com/kuryr-kubernetes/coordinator \
-    && go mod tidy \
-    && GO111MODULE=auto go build -o /go/bin/coordinator .
-#RUN GO111MODULE=auto go build -o /go/bin/coordinator ./coordinator/main.go
+#RUN cd /go/src/opendev.com/kuryr-kubernetes/coordinator \
+#    && go mod tidy \
+#    && GO111MODULE=auto go build -o /go/bin/coordinator .
+##RUN GO111MODULE=auto go build -o /go/bin/coordinator ./coordinator/main.go
 
 FROM quay.io/centos/centos:stream8
 LABEL authors="Antoni Segura Puimedon<toni@kuryr.org>, Michał Dulko<mdulko@redhat.com>"

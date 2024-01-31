@@ -617,6 +617,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        - name: KUBE_SERVICE_CIDR
+          value: "10.232.0.0/14"
         securityContext:
           privileged: true
         volumeMounts:

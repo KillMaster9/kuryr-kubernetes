@@ -182,8 +182,7 @@ k8s_opts = [
     cfg.ListOpt('enabled_handlers',
                 help=_("The comma-separated handlers that should be "
                        "registered for watching in the pipeline."),
-                default=['vif', 'endpoints', 'service', 'kuryrloadbalancer',
-                         'kuryrport']),
+                default=['vif', 'kuryrport']),
     cfg.BoolOpt('controller_ha',
                 help=_('Enable kuryr-controller active/passive HA. Only '
                        'supported in containerized deployments on Kubernetes '
@@ -198,7 +197,7 @@ k8s_opts = [
     cfg.ListOpt('multi_vif_drivers',
                 help=_("The drivers that provide additional VIFs for "
                        "Kubernetes Pods."),
-                default='noop'),
+                default='nested'),
     cfg.StrOpt('additional_ifname_prefix',
                help=_("The prefix to use for additional vifs created by "
                       " multi_vif drivers"),
@@ -226,7 +225,7 @@ neutron_defaults = [
                default=None),
     cfg.IntOpt('network_device_mtu',
                help='Default MTU setting for network interface.',
-               default=0,),
+               default=0, ),
     cfg.IntOpt('lbaas_activation_timeout',
                help=_("Time (in seconds) that kuryr controller waits for "
                       "neutron LBaaS to be activated"),
@@ -330,7 +329,6 @@ sriov_opts = [
                 default=False),
 ]
 
-
 vhostuser = [
     cfg.StrOpt('mount_point',
                help=_("Path where vhost-user port will be created "
@@ -368,7 +366,6 @@ def init(args, **kwargs):
 
 
 def setup_logging():
-
     logging.setup(CONF, 'kuryr-kubernetes')
     logging.set_defaults(default_log_levels=logging.get_default_log_levels())
     version_k8s = version.version_info.version_string()
