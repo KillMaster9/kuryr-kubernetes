@@ -27,6 +27,7 @@ from kuryr_kubernetes import clients
 from kuryr_kubernetes import constants
 from kuryr_kubernetes import exceptions as k_exc
 from kuryr_kubernetes import utils
+from kuryr_kubernetes import config
 
 OPERATORS_WITH_VALUES = [constants.K8S_OPERATOR_IN,
                          constants.K8S_OPERATOR_NOT_IN]
@@ -466,25 +467,25 @@ def match_selector(selector, labels):
     return match_exp and match_lb
 
 
-def get_namespace_subnet_cidr(namespace):
-    kubernetes = clients.get_kubernetes_client()
-    try:
-        net_crd_path = (f"{constants.K8S_API_CRD_NAMESPACES}/"
-                        f"{namespace['metadata']['name']}/kuryrnetworks/"
-                        f"{namespace['metadata']['name']}")
-        net_crd = kubernetes.get(net_crd_path)
-    except k_exc.K8sResourceNotFound:
-        LOG.exception('Namespace not yet ready')
-        raise k_exc.ResourceNotReady(namespace)
-    except k_exc.K8sClientException:
-        LOG.exception("Kubernetes Client Exception.")
-        raise
-    try:
-        subnet_cidr = net_crd['status']['subnetCIDR']
-    except KeyError:
-        LOG.exception('Namespace not yet ready')
-        raise k_exc.ResourceNotReady(namespace)
-    return subnet_cidr
+# def get_namespace_subnet_cidr(namespace):
+#     kubernetes = clients.get_kubernetes_client()
+#     try:
+#         net_crd_path = (f"{constants.K8S_API_CRD_NAMESPACES}/"
+#                         f"{namespace['metadata']['name']}/kuryrnetworks/"
+#                         f"{namespace['metadata']['name']}")
+#         net_crd = kubernetes.get(net_crd_path)
+#     except k_exc.K8sResourceNotFound:
+#         LOG.exception('Namespace not yet ready')
+#         raise k_exc.ResourceNotReady(namespace)
+#     except k_exc.K8sClientException:
+#         LOG.exception("Kubernetes Client Exception.")
+#         raise
+#     try:
+#         subnet_cidr = net_crd['status']['subnetCIDR']
+#     except KeyError:
+#         LOG.exception('Namespace not yet ready')
+#         raise k_exc.ResourceNotReady(namespace)
+#     return subnet_cidr
 
 
 def tag_neutron_resources(resources):
@@ -724,3 +725,31 @@ def get_default_security_groups(project_id):
         LOG.exception("Pod security groups not found. project id is %s", project_id)
         raise cfg.RequiredOptError('pod_security_groups',
                                    cfg.OptGroup('neutron_defaults'))
+
+
+def get_all_namespaces():
+    namespace_path = constants.K8S_API_NAMESPACES
+    try:
+        namespaces = get_k8s_resources(namespace_path)
+    except k_exc.K8sClientException:
+        LOG.exception("Exception during fetch Namespaces. Retrying.")
+        raise k_exc.ResourceNotReady(namespace_path)
+    return namespaces
+
+
+def get_namespace_subnet_cidr(name):
+    namespaces_cidrs = []
+
+    os_net = clients.get_network_client()
+    namespace = get_namespace(name)
+
+    subnet = namespace['metadata'].get('annotations', {}).get(constants.K8s_ANNOTATION_POD_SUBNET)
+    if not subnet:
+        subnet = config.CONF.neutron_defaults.pod_subnet
+    if subnet:
+        subnet_ids = subnet.split(",")
+        for subnet_id in subnet_ids:
+            st = os_net.get_subnet(subnet_id)
+            namespaces_cidrs = namespaces_cidrs.append(st.cidr)
+
+    return namespaces_cidrs

@@ -23,7 +23,7 @@ function deploy() {
       "debug": true
     },{
       "type": "coordinator",
-      "serviceCIDR": [$KUBE_SERVICE_CIDR]
+      "serviceCIDR": ["$KUBE_SERVICE_CIDR"]
     }
   ]
 }

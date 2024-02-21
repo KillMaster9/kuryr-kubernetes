@@ -141,7 +141,7 @@ k8s_opts = [
     cfg.StrOpt('vif_pool_driver',
                help=_("The driver that manages VIFs pools for "
                       "Kubernetes Pods"),
-               default='noop'),
+               default='nested'),
     cfg.StrOpt('nodes_subnets_driver',
                help=_("The driver that manages listing K8s nodes subnet_ids."),
                default='config'),
@@ -197,7 +197,7 @@ k8s_opts = [
     cfg.ListOpt('multi_vif_drivers',
                 help=_("The drivers that provide additional VIFs for "
                        "Kubernetes Pods."),
-                default='nested'),
+                default='noop'),
     cfg.StrOpt('additional_ifname_prefix',
                help=_("The prefix to use for additional vifs created by "
                       " multi_vif drivers"),
