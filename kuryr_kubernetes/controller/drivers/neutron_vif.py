@@ -26,7 +26,6 @@ from kuryr_kubernetes.controller.drivers import utils
 from kuryr_kubernetes import exceptions as k_exc
 from kuryr_kubernetes import os_vif_util as ovu
 
-
 LOG = logging.getLogger(__name__)
 
 CONF = cfg.CONF
@@ -110,12 +109,19 @@ class NeutronPodVIFDriver(base.PodVIFDriver):
         vif.active = True
 
     def update_vif_sgs(self, pod, security_groups):
+        security_groups_list = None
+        port_security_enabled = False
         os_net = clients.get_network_client()
         vifs = utils.get_vifs(pod)
         if vifs:
             # NOTE(ltomasbo): It just updates the default_vif security group
             port_id = vifs[constants.DEFAULT_IFNAME].id
-            os_net.update_port(port_id, security_groups=list(security_groups))
+            if security_groups is not None:
+                security_groups_list = list(security_groups)
+                port_security_enabled = True
+            # if port security group is disabled
+            os_net.update_port(port_id, security_groups=security_groups_list,
+                               port_security_enabled=port_security_enabled)
 
     def _get_port_request(self, pod, project_id, subnets, security_groups,
                           unbound=False):

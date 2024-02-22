@@ -751,15 +751,18 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
 
     def _get_resource_details(self, resource):
         namespace = None
+        cidrs = []
         if self._is_pod(resource):
             cidr = resource['status'].get('podIP')
             namespace = resource['metadata']['namespace']
+            cidrs.append(cidr)
         elif resource.get('cidr'):
             cidr = resource.get('cidr')
+            cidrs.append(cidr)
         else:
-            cidr = driver_utils.get_namespace_subnet_cidr(resource)
+            cidrs = driver_utils.get_namespace_subnet_cidr(resource)
             namespace = resource['metadata']['name']
-        return cidr, namespace
+        return cidrs, namespace
 
     def _is_pod(self, resource):
         if resource.get('spec'):

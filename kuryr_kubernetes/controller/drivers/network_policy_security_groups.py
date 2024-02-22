@@ -130,8 +130,8 @@ def _parse_selectors_on_pod(crd, pod, pod_selector, namespace_selector,
                                    direction, matched)
     elif namespace_selector:
         if (pod_namespace_labels and
-            driver_utils.match_selector(namespace_selector,
-                                        pod_namespace_labels)):
+                driver_utils.match_selector(namespace_selector,
+                                            pod_namespace_labels)):
             matched = _create_sg_rules(crd, pod, pod_selector,
                                        rule_block, direction, matched)
     else:
@@ -260,6 +260,8 @@ def _get_pod_sgs(pod):
         namespace=pod_namespace)
     for crd in knp_crds:
         pod_selector = crd['spec'].get('podSelector')
+        LOG.debug("KuryrNetworkPolicy Name is %s, podSelector %s, pod_name %s,pod_labels %s ", crd['metadata']['name'],
+                  pod_selector, pod['metadata']['name'], pod_labels)
         if driver_utils.match_selector(pod_selector, pod_labels):
             sg_id = crd['status'].get('securityGroupId')
             if not sg_id:
@@ -277,8 +279,9 @@ def _get_pod_sgs(pod):
     if not sg_list:
         sg_list = config.CONF.neutron_defaults.pod_security_groups
         if not sg_list:
-            raise cfg.RequiredOptError('pod_security_groups',
-                                       cfg.OptGroup('neutron_defaults'))
+            # raise cfg.RequiredOptError('pod_security_groups',
+            #                            cfg.OptGroup('neutron_defaults'))
+            return None
 
     return sg_list[:]
 
@@ -409,7 +412,7 @@ class NetworkPolicySecurityGroupsDriver(base.PodSecurityGroupsDriver):
 
 
 class NetworkPolicyServiceSecurityGroupsDriver(
-        base.ServiceSecurityGroupsDriver):
+    base.ServiceSecurityGroupsDriver):
     """Provides security groups for services based on network policies"""
 
     def get_security_groups(self, service, project_id):

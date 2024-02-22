@@ -188,8 +188,9 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
 
     def _get_pool_key(self, host, project_id, net_id=None, subnets=None):
         if not net_id and subnets:
-            net_obj = list(subnets.values())[0]
-            net_id = net_obj.id
+            # net_obj = list(subnets.values())[0]
+            # net_id = net_obj.id
+            net_id = list(subnets.keys())[0]
         pool_key = (host, project_id, net_id)
         return pool_key
 
