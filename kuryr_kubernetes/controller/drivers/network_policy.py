@@ -761,7 +761,7 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
             cidrs.append(cidr)
         else:
             cidrs = driver_utils.get_namespace_subnet_cidr(resource)
-            namespace = resource['metadata']['namespace']
+            namespace = resource['metadata']['name']
         return cidrs, namespace
 
     def _is_pod(self, resource):

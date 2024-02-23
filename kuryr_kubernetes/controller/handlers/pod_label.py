@@ -75,7 +75,7 @@ class PodLabelHandler(k8s_base.ResourceEventHandler):
             LOG.debug("Pod already deleted, no need to retry.")
             return
 
-        if oslo_cfg.CONF.octavia_defaults.enforce_sg_rules:
+        if oslo_cfg.CONF.octavia_defaults.enforce_sg_rules and False:
             services = driver_utils.get_services()
             self._update_services(services, crd_pod_selectors, project_id)
 

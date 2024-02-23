@@ -179,7 +179,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
             vif = objects.base.VersionedObject.obj_from_primitive(data['vif'])
             self._drv_vif_pool.release_vif(pod, vif, project_id,
                                            security_groups)
-        if (driver_utils.is_network_policy_enabled() and crd_pod_selectors and
+        if (driver_utils.is_network_policy_enabled() and crd_pod_selectors and False and
                 oslo_cfg.CONF.octavia_defaults.enforce_sg_rules):
             services = driver_utils.get_services()
             self._update_services(services, crd_pod_selectors, project_id)
