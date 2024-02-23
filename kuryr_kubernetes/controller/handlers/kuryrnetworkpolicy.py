@@ -182,7 +182,7 @@ class KuryrNetworkPolicyHandler(k8s_base.ResourceEventHandler):
         # FIXME(dulek): We should not need this one day.
         policy = self._get_networkpolicy(knp['metadata']['annotations']
                                          ['networkPolicyLink'])
-        if (pods_to_update and CONF.octavia_defaults.enforce_sg_rules and
+        if (pods_to_update and CONF.octavia_defaults.enforce_sg_rules and False and
                 not self._is_egress_only_policy(policy)):
             # NOTE(ltomasbo): only need to change services if the pods that
             # they point to are updated
@@ -255,11 +255,12 @@ class KuryrNetworkPolicyHandler(k8s_base.ResourceEventHandler):
                 if crd_sg in pod_sgs:
                     pod_sgs.remove(crd_sg)
                 if not pod_sgs:
-                    pod_sgs = CONF.neutron_defaults.pod_security_groups
-                    if not pod_sgs:
-                        raise cfg.RequiredOptError(
-                            'pod_security_groups',
-                            cfg.OptGroup('neutron_defaults'))
+                    pod_sgs = None
+                    # pod_sgs = CONF.neutron_defaults.pod_security_groups
+                    # if not pod_sgs:
+                    #     raise cfg.RequiredOptError(
+                    #         'pod_security_groups',
+                    #         cfg.OptGroup('neutron_defaults'))
                 try:
                     self._drv_vif_pool.update_vif_sgs(pod, pod_sgs)
                 except os_exc.NotFoundException:
@@ -267,16 +268,16 @@ class KuryrNetworkPolicyHandler(k8s_base.ResourceEventHandler):
                     pass
 
             # ensure ports at the pool don't have the NP sg associated
-            try:
-                net_id = self._get_policy_net_id(knp)
-                self._drv_vif_pool.remove_sg_from_pools(crd_sg, net_id)
-            except exceptions.K8sResourceNotFound:
-                # Probably the network got removed already, we can ignore it.
-                pass
+            # try:
+            #     net_id = self._get_policy_net_id(knp)
+            #     self._drv_vif_pool.remove_sg_from_pools(crd_sg, net_id)
+            # except exceptions.K8sResourceNotFound:
+            #     # Probably the network got removed already, we can ignore it.
+            #     pass
 
             self._drv_policy.delete_np_sg(crd_sg)
 
-            if (CONF.octavia_defaults.enforce_sg_rules and policy and
+            if (CONF.octavia_defaults.enforce_sg_rules and policy and False and
                     not self._is_egress_only_policy(policy)):
                 services = driver_utils.get_services(
                     knp['metadata']['namespace'])

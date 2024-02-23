@@ -232,7 +232,7 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
 
     def _parse_selectors(self, rule_block, rule_direction, policy_namespace):
         allowed_resources = []
-        allowed_cidrs = None
+        allowed_cidrs = []
         selectors = False
         for rule in rule_block.get(rule_direction, []):
             namespace_selector = rule.get('namespaceSelector')
@@ -308,7 +308,7 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
                         cidr=cidr, pods=pods)
                     if sg_rule not in crd_rules:
                         crd_rules.append(sg_rule)
-                    if direction == 'egress':
+                    if direction == 'egress' and False:
                         self._create_svc_egress_sg_rule(
                             policy_namespace, crd_rules,
                             resource=resource, port=container_port,
@@ -393,7 +393,7 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
                         cidr=cidr,
                         namespace=ns))
                 sg_rule_body_list.append(sg_rule)
-                if direction == 'egress':
+                if direction == 'egress' and False:
                     self._create_svc_egress_sg_rule(
                         policy_namespace, sg_rule_body_list,
                         resource=resource, port=port.get('port'),
@@ -545,7 +545,7 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
                         rule = _create_sg_rule_body(direction, cidr=cidr,
                                                     namespace=namespace)
                         sg_rule_body_list.append(rule)
-                        if direction == 'egress':
+                        if direction == 'egress' and False:
                             self._create_svc_egress_sg_rule(
                                 policy_namespace, sg_rule_body_list,
                                 resource=resource)
@@ -761,7 +761,7 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
             cidrs.append(cidr)
         else:
             cidrs = driver_utils.get_namespace_subnet_cidr(resource)
-            namespace = resource['metadata']['name']
+            namespace = resource['metadata']['namespace']
         return cidrs, namespace
 
     def _is_pod(self, resource):
@@ -770,9 +770,6 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
 
     def get_namespace_subnet_cidrs(self):
         namespaces_cidrs = []
-        default_cidr = config.CONF.neutron_defaults.pod_subnet
-        namespaces_cidrs.append(default_cidr)
-
         os_net = clients.get_network_client()
         namespaces = driver_utils.get_all_namespaces()
 
@@ -782,6 +779,7 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
                 subnet_ids = pod_subnet.split(",")
                 for subnet_id in subnet_ids:
                     subnet = os_net.get_subnet(subnet_id)
-                    namespaces_cidrs = namespaces_cidrs.append(subnet.cidr)
+                    namespaces_cidrs.append(subnet.cidr)
+                    LOG.debug("namespace subnet id %s, cidr %s, subnet %s", subnet_id, subnet.cidr, subnet)
 
         return namespaces_cidrs

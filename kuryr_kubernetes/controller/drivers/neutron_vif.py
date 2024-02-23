@@ -116,7 +116,7 @@ class NeutronPodVIFDriver(base.PodVIFDriver):
         if vifs:
             # NOTE(ltomasbo): It just updates the default_vif security group
             port_id = vifs[constants.DEFAULT_IFNAME].id
-            if security_groups is not None:
+            if security_groups is not None and len(security_groups):
                 security_groups_list = list(security_groups)
                 port_security_enabled = True
             # if port security group is disabled

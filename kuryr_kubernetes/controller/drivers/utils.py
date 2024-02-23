@@ -737,19 +737,16 @@ def get_all_namespaces():
     return namespaces
 
 
-def get_namespace_subnet_cidr(name):
+def get_namespace_subnet_cidr(namespace):
     namespaces_cidrs = []
-
     os_net = clients.get_network_client()
-    namespace = get_namespace(name)
-
     subnet = namespace['metadata'].get('annotations', {}).get(constants.K8s_ANNOTATION_POD_SUBNET)
-    if not subnet:
-        subnet = config.CONF.neutron_defaults.pod_subnet
+    # if not subnet:
+    #     subnet = config.CONF.neutron_defaults.pod_subnet
     if subnet:
         subnet_ids = subnet.split(",")
         for subnet_id in subnet_ids:
             st = os_net.get_subnet(subnet_id)
-            namespaces_cidrs = namespaces_cidrs.append(st.cidr)
+            namespaces_cidrs.append(st.cidr)
 
     return namespaces_cidrs
