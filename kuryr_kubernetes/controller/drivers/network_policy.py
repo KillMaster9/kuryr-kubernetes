@@ -752,7 +752,7 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
     def _get_resource_details(self, resource):
         namespace = None
         cidrs = []
-        if self._is_pod(resource):
+        if self._is_pod(resource) and self.check_finalize(resource) is False:
             cidr = resource['status'].get('podIP')
             namespace = resource['metadata']['namespace']
             cidrs.append(cidr)
@@ -783,3 +783,14 @@ class NetworkPolicyDriver(base.NetworkPolicyDriver):
                     LOG.debug("namespace subnet id %s, cidr %s, subnet %s", subnet_id, subnet.cidr, subnet)
 
         return namespaces_cidrs
+
+    def check_finalize(self, resource):
+        res = False
+        try:
+            deletion_timestamp = resource['metadata']['deletionTimestamp']
+            if deletion_timestamp is not None:
+                res = True
+        except (KeyError, TypeError):
+            pass
+
+        return res

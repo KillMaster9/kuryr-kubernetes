@@ -45,7 +45,7 @@ vif_pool_driver_opts = [
     oslo_cfg.IntOpt('ports_pool_max',
                     help=_("Set a maximum amount of ports per pool. "
                            "0 to disable"),
-                    default=0),
+                    default=10),
     oslo_cfg.IntOpt('ports_pool_min',
                     help=_("Set a target minimum size of the pool of ports"),
                     default=5),

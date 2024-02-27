@@ -108,9 +108,11 @@ class PodLabelHandler(k8s_base.ResourceEventHandler):
     def _has_vifs(self, pod):
         try:
             kp = driver_utils.get_vifs(pod)
-            vifs = kp['status']['vifs']
-            LOG.debug("Pod have associated KuryrPort with vifs: %s", vifs)
-        except KeyError:
+            if len(kp) == 0:
+                return False
+            # vifs = kp['status']['vifs']
+            # LOG.debug("Pod have associated KuryrPort with vifs: %s", vifs)
+        except (KeyError, AttributeError, TypeError):
             return False
         return True
 
