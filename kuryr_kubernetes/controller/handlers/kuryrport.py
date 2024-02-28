@@ -112,7 +112,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
                 except k_exc.K8sClientException:
                     raise k_exc.ResourceNotReady(pod['metadata']['name'])
 
-                if driver_utils.is_network_policy_enabled():
+                if driver_utils.is_network_policy_enabled() and False:
                     crd_pod_selectors = self._drv_sg.create_sg_rules(pod)
                     if oslo_cfg.CONF.octavia_defaults.enforce_sg_rules:
                         services = driver_utils.get_services()

@@ -106,11 +106,11 @@ k8s_opts = [
     cfg.StrOpt('namespace_project_driver',
                help=_("The driver to determine OpenStack "
                       "project for namespaces"),
-               default='default'),
+               default='namespace'),
     cfg.StrOpt('network_policy_project_driver',
                help=_("The driver to determine OpenStack "
                       "project for network policies"),
-               default='default'),
+               default='namespace'),
     cfg.StrOpt('pod_subnets_driver',
                help=_("The driver to determine Neutron "
                       "subnets for pod ports"),
@@ -122,7 +122,7 @@ k8s_opts = [
     cfg.StrOpt('pod_security_groups_driver',
                help=_("The driver to determine Neutron "
                       "security groups for pods"),
-               default='default'),
+               default='policy'),
     cfg.StrOpt('service_security_groups_driver',
                help=_("The driver to determine Neutron "
                       "security groups for services"),

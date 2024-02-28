@@ -127,5 +127,6 @@ K8s_ANNOTATION_POD_RUNTIME_ID = ICR_K8S_ANNOTATION_PREFIX + 'runtime-id'
 K8s_ANNOTATION_POD_SUBNET = ICR_K8S_ANNOTATION_PREFIX + 'pod-subnet'
 K8s_ANNOTATION_PROJECT = ICR_K8S_ANNOTATION_PREFIX + 'vdc-id'
 
+
 USERSPACE_DRIVERS = ['vfio-pci', 'uio', 'uio_pci_generic', 'igb_uio']
 MELLANOX_DRIVERS = ['mlx4_core', 'mlx5_core']

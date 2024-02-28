@@ -687,8 +687,8 @@ def bump_networkpolicies(namespace=None):
 
 def is_network_policy_enabled():
     enabled_handlers = CONF.kubernetes.enabled_handlers
-    svc_sg_driver = CONF.kubernetes.service_security_groups_driver
-    return 'policy' in enabled_handlers and svc_sg_driver == 'policy'
+    #svc_sg_driver = CONF.kubernetes.service_security_groups_driver
+    return 'policy' in enabled_handlers
 
 
 def get_port_tag(pod):

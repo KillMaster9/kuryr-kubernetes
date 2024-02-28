@@ -20,6 +20,8 @@ from kuryr_kubernetes.controller.drivers import base as drivers
 from kuryr_kubernetes import exceptions
 from kuryr_kubernetes.handlers import k8s_base
 from kuryr_kubernetes import utils
+from oslo_serialization import jsonutils
+from kuryr_kubernetes.controller.drivers import utils as driver_utils
 
 
 LOG = logging.getLogger(__name__)
@@ -121,3 +123,60 @@ class NamespaceHandler(k8s_base.ResourceEventHandler):
                 if not utils.is_available(resource, resource_quota):
                     return False
         return True
+
+
+class IcsNamespaceHandler(k8s_base.ResourceEventHandler):
+    OBJECT_KIND = constants.K8S_OBJ_NAMESPACE
+    OBJECT_WATCH_PATH = constants.K8S_API_NAMESPACES
+
+    def __init__(self):
+        super(IcsNamespaceHandler, self).__init__()
+        self._drv_project = drivers.NamespaceProjectDriver.get_instance()
+        self._drv_sg = drivers.PodSecurityGroupsDriver.get_instance()
+
+    def on_present(self, namespace, *args, **kwargs):
+        name = namespace['metadata']['name']
+        current_ns_labels = namespace['metadata'].get('labels', {})
+        previous_ns_label = self._get_namespace_info(namespace)
+
+        LOG.debug("Got Namespace labels, namspace name is %s, current namespace label is %s, previous namespace "
+                  "labels is %s", name, current_ns_labels, previous_ns_label)
+
+        if previous_ns_label == current_ns_labels:
+            return
+
+        self._drv_sg.update_namespace_sg_rules(namespace)
+
+        try:
+            self._set_namespace_info(namespace, current_ns_labels)
+        except exceptions.K8sResourceNotFound:
+            LOG.debug("Namespace already deleted, no need to retry.")
+            return
+
+    def _get_namespace_info(self, namespace):
+        try:
+            annotations = namespace['metadata']['annotations']
+            namespace_labels_annotation = annotations[constants.K8S_ANNOTATION_NAMESPACE_LABEL]
+        except KeyError:
+            return None, None
+        pod_labels = jsonutils.loads(namespace_labels_annotation)
+        return pod_labels
+
+    def _set_namespace_info(self, namespace, info):
+        if not info:
+            LOG.debug("Removing info annotations: %r", info)
+            annotation = None
+        else:
+            annotation = jsonutils.dumps(info, sort_keys=True)
+            LOG.debug("Setting info annotations: %r", annotation)
+
+        k8s = clients.get_kubernetes_client()
+        k8s.annotate(utils.get_res_link(namespace),
+                     {
+                         constants.K8S_ANNOTATION_NAMESPACE_LABEL: annotation,
+                     },
+                     resource_version=namespace['metadata']['resourceVersion'])
+
+    def on_deleted(self, namespace, *args, **kwargs):
+        if driver_utils.is_network_policy_enabled():
+            self._drv_sg.delete_namespace_sg_rules(namespace)
