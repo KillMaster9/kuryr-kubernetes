@@ -1078,7 +1078,7 @@ class NestedVIFPool(BaseVIFPool):
                 net_obj = subnet[subnet_id]
                 pool_key = self._get_pool_key(host_addr,
                                               kuryr_subport.project_id,
-                                              net_obj.id, None)
+                                              subnet_id, None)
 
                 if action == 'recover':
                     vif = ovu.neutron_to_osvif_vif_nested_vlan(

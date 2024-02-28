@@ -131,7 +131,7 @@ class IcsNamespaceHandler(k8s_base.ResourceEventHandler):
 
     def __init__(self):
         super(IcsNamespaceHandler, self).__init__()
-        self._drv_project = drivers.NamespaceProjectDriver.get_instance()
+        #self._drv_project = drivers.NamespaceProjectDriver.get_instance()
         self._drv_sg = drivers.PodSecurityGroupsDriver.get_instance()
 
     def on_present(self, namespace, *args, **kwargs):
