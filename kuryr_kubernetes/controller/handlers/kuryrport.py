@@ -24,6 +24,8 @@ from kuryr_kubernetes.controller.drivers import utils as driver_utils
 from kuryr_kubernetes import exceptions as k_exc
 from kuryr_kubernetes.handlers import k8s_base
 from kuryr_kubernetes import utils
+from kuryr_kubernetes.controller.handlers import static_ip
+from oslo_concurrency import lockutils
 
 LOG = logging.getLogger(__name__)
 KURYRPORT_URI = constants.K8S_API_CRD_NAMESPACES + '/{ns}/kuryrports/{crd}'
@@ -57,6 +59,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
             self._drv_svc_sg = (drivers.ServiceSecurityGroupsDriver
                                 .get_instance())
         self.k8s = clients.get_kubernetes_client()
+        self._drv_vif = drivers.PodVIFDriver.get_instance()
 
     def on_present(self, kuryrport_crd, *args, **kwargs):
         if not kuryrport_crd['status']['vifs']:
@@ -70,7 +73,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
 
         vifs = {ifname: {'default': data['default'],
                          'vif': objects.base.VersionedObject
-                         .obj_from_primitive(data['vif'])}
+                             .obj_from_primitive(data['vif'])}
                 for ifname, data in kuryrport_crd['status']['vifs'].items()}
 
         if all([v['vif'].active for v in vifs.values()]):
@@ -218,9 +221,19 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
 
         # Request the default interface of pod
         try:
-            main_vif = self._drv_vif_pool.request_vif(pod, project_id,
-                                                      subnets,
-                                                      security_groups)
+            if static_ip.is_static_ip_pod(pod):
+                owner_name = static_ip.get_owner_references_name(pod)
+                # the static_ip port is not used vif_pool_driver
+                with lockutils.lock(owner_name, external=True):
+                    subnets = static_ip.acquire_pod_address(pod, subnets)
+                    LOG.debug("Pod %s need a static ip, subnet info %s", pod['metadata']['name'], subnets)
+                    main_vif = self._drv_vif.request_vif(pod, project_id,
+                                                         subnets,
+                                                         security_groups)
+            else:
+                main_vif = self._drv_vif_pool.request_vif(pod, project_id,
+                                                          subnets,
+                                                          security_groups)
         except os_exc.ResourceNotFound:
             # NOTE(gryf): It might happen, that between getting security
             # groups above and requesting VIF, network policy is deleted,
