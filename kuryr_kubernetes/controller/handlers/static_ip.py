@@ -21,6 +21,7 @@ from oslo_log import log
 from kuryr_kubernetes import clients
 from openstack import exceptions as os_exc
 from os_vif.objects import fixed_ip as osv_fixed_ip
+from kuryr_kubernetes import exceptions
 
 LOG = log.getLogger(__name__)
 
@@ -51,6 +52,8 @@ def acquire_pod_address(pod, networks):
 
     if pod_ip_address:
         ipv4, ipv6 = acquire_static_ip_address(pod_ip_address, subnet_version)
+        if not ipv4 and not ipv6:
+            raise exceptions.ResourceNotReady(pod)
         LOG.debug("Pod name is %s, pod_ip_address is %s,%s", pod['metadata']['name'], ipv4, ipv6)
         networks = populate_networks_fixed_ips(ipv4, ipv6, networks)
         return networks
@@ -68,7 +71,7 @@ def acquire_pod_address(pod, networks):
     if is_sts is False:
         for ip in ip_pool:
             ipv4, ipv6 = acquire_static_ip_address(ip, subnet_version)
-            if ((ipv4 or ipv6) and len(ip_pool.split(',')) == 1) or (ipv4 and ipv6 and len(ip_pool.split(',')) == 2):
+            if ((ipv4 or ipv6) and len(networks) == 1) or (ipv4 and ipv6 and len(networks) == 2):
                 networks = populate_networks_fixed_ips(ipv4, ipv6, networks)
                 return networks
     else:
@@ -76,11 +79,11 @@ def acquire_pod_address(pod, networks):
         index = int(pod_name.split('-')[-1])
         if index < len(ip_pool):
             ipv4, ipv6 = acquire_static_ip_address(ip_pool[index], subnet_version)
-            if ((ipv4 or ipv6) and len(ip_pool.split(',')) == 1) or (ipv4 and ipv6 and len(ip_pool.split(',')) == 2):
+            if ((ipv4 or ipv6) and len(networks) == 1) or (ipv4 and ipv6 and len(networks) == 2):
                 networks = populate_networks_fixed_ips(ipv4, ipv6, networks)
                 return networks
 
-    return networks
+    raise exceptions.ResourceNotReady(pod)
 
 
 def acquire_static_ip_address(ip_address, subnet_version):
@@ -104,7 +107,7 @@ def acquire_static_ip_address(ip_address, subnet_version):
         # check the ip from the network
         if addr not in network:
             LOG.error("The addr %s not belong to the network %s", addr, cidr)
-            return "", ""
+            continue
 
         # check the ip inuse
         subnet_id = list(dict(subnet_version[addr.version]).keys())[0]
@@ -129,7 +132,7 @@ def acquire_static_ip_address(ip_address, subnet_version):
             pts = None
         if pts:
             LOG.error("Port IP %s has been used by other port", addr)
-            return "", ""
+            continue
         else:
             if addr.version == constants.IP_VERSION_4:
                 ipv4 = ip
@@ -137,11 +140,11 @@ def acquire_static_ip_address(ip_address, subnet_version):
                 ipv6 = ip
             LOG.debug("The Pod ip %s is valid", ip)
 
-    if len(ips) == 1 and IPAddress(ips[0]).version == constants.IP_VERSION_4:
+    if len(subnet_version) == 1 and ipv4:
         return ipv4, ""
-    if len(ips) == 1 and IPAddress(ips[0]).version == constants.IP_VERSION_6:
+    if len(subnet_version) == 1 and ipv6:
         return "", ipv6
-    if len(ips) == 2 and IPAddress(ips[0]).version != IPAddress(ips[1]).version and ipv4 and ipv6:
+    if len(subnet_version) == 2 and IPAddress(ips[0]).version != IPAddress(ips[1]).version and ipv4 and ipv6:
         return ipv4, ipv6
 
     return "", ""
