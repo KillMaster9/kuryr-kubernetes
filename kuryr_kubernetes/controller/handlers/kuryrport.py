@@ -180,8 +180,13 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
 
         for data in kuryrport_crd['status']['vifs'].values():
             vif = objects.base.VersionedObject.obj_from_primitive(data['vif'])
-            self._drv_vif_pool.release_vif(pod, vif, project_id,
-                                           security_groups)
+            if static_ip.is_static_ip_pod(pod) and data['default']:
+                self._drv_vif.release_vif(pod, vif,
+                                          project_id,
+                                          security_groups)
+            else:
+                self._drv_vif_pool.release_vif(pod, vif, project_id,
+                                               security_groups)
         if (driver_utils.is_network_policy_enabled() and crd_pod_selectors and False and
                 oslo_cfg.CONF.octavia_defaults.enforce_sg_rules):
             services = driver_utils.get_services()
@@ -223,8 +228,10 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
         try:
             if static_ip.is_static_ip_pod(pod):
                 owner_name = static_ip.get_owner_references_name(pod)
+                if not owner_name:
+                    owner_name = pod['metadata']['name']
                 # the static_ip port is not used vif_pool_driver
-                with lockutils.lock(owner_name, external=True):
+                with lockutils.lock(owner_name, external=False):
                     subnets = static_ip.acquire_pod_address(pod, subnets)
                     LOG.debug("Pod %s need a static ip, subnet info %s", pod['metadata']['name'], subnets)
                     main_vif = self._drv_vif.request_vif(pod, project_id,
@@ -255,7 +262,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
         for driver in self._drv_multi_vif:
             additional_vifs = driver.request_additional_vifs(pod, project_id,
                                                              security_groups)
-            for index, vif in enumerate(additional_vifs, start=index+1):
+            for index, vif in enumerate(additional_vifs, start=index + 1):
                 ifname = (oslo_cfg.CONF.kubernetes.additional_ifname_prefix +
                           str(index))
                 vifs[ifname] = {'default': False, 'vif': vif}
@@ -266,9 +273,14 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
             LOG.exception("Kubernetes Client Exception creating "
                           "KuryrPort CRD: %s", ex)
             for ifname, data in vifs.items():
-                self._drv_vif_pool.release_vif(pod, data['vif'],
-                                               project_id,
-                                               security_groups)
+                if static_ip.is_static_ip_pod(pod) and data['default']:
+                    self._drv_vif.release_vif(pod, data['vif'],
+                                              project_id,
+                                              security_groups)
+                else:
+                    self._drv_vif_pool.release_vif(pod, data['vif'],
+                                                   project_id,
+                                                   security_groups)
         return True
 
     def _update_kuryrport_crd(self, kuryrport_crd, vifs):

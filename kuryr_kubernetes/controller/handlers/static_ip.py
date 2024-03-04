@@ -108,6 +108,7 @@ def acquire_static_ip_address(ip_address, subnet_version):
 
         # check the ip inuse
         subnet_id = list(dict(subnet_version[addr.version]).keys())[0]
+        LOG.debug("Pod static ip %s, subnet id %s", ip, subnet_id)
         try:
             fixed_ips = ['subnet_id=%s' % str(subnet_id),
                          'ip_address=%s' % str(ip)]
@@ -118,12 +119,23 @@ def acquire_static_ip_address(ip_address, subnet_version):
                 ipv4 = ip
             if addr.version == constants.IP_VERSION_6:
                 ipv6 = ip
+            LOG.debug("The Pod ip %s is valid", ip)
         except os_exc.SDKException:
             LOG.error("Port with fixed ips %s not found!", fixed_ips)
             return "", ""
-        if ports is not None:
-            LOG.error("Port IP %s has been used by port %s", ports[0].id)
+        try:
+            pts = next(ports)
+        except StopIteration:
+            pts = None
+        if pts:
+            LOG.error("Port IP %s has been used by other port", addr)
             return "", ""
+        else:
+            if addr.version == constants.IP_VERSION_4:
+                ipv4 = ip
+            if addr.version == constants.IP_VERSION_6:
+                ipv6 = ip
+            LOG.debug("The Pod ip %s is valid", ip)
 
     if len(ips) == 1 and IPAddress(ips[0]).version == constants.IP_VERSION_4:
         return ipv4, ""
@@ -143,10 +155,12 @@ def populate_networks_fixed_ips(ipv4, ipv6, networks):
         if len(network.subnets.objects) > 1:
             return networks
         for subnet in network.subnets.objects:
+            if subnet.obj_attr_is_set('ips') is False:
+                subnet.ips = osv_fixed_ip.FixedIPList(objects=[])
             if IPNetwork(subnet.cidr).version == constants.IP_VERSION_4:
-                subnet.ips.objects.append(osv_fixed_ip.FixedIP(address=ipv4))
+                subnet.ips.objects.append(osv_fixed_ip.FixedIP(address=str(ipv4)))
             if IPNetwork(subnet.cidr).version == constants.IP_VERSION_6:
-                subnet.ips.objects.append(osv_fixed_ip.FixedIP(address=ipv6))
+                subnet.ips.objects.append(osv_fixed_ip.FixedIP(address=str(ipv6)))
     return networks
 
 
