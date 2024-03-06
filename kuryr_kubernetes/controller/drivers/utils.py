@@ -750,3 +750,10 @@ def get_namespace_subnet_cidr(namespace):
             namespaces_cidrs.append(st.cidr)
 
     return namespaces_cidrs
+
+def get_owner_references_name(resource):
+    owner_references = resource['metadata'].get('ownerReferences', [])
+    for owner in owner_references:
+        return owner['name']
+
+    return None

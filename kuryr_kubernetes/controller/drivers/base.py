@@ -82,9 +82,9 @@ class DriverBase(object):
         if not isinstance(driver, cls):
             raise TypeError(_("Invalid %(alias)r driver type: %(driver)s, "
                               "must be a subclass of %(type)s") % {
-                            'alias': alias,
-                            'driver': driver.__class__.__name__,
-                            'type': cls})
+                                'alias': alias,
+                                'driver': driver.__class__.__name__,
+                                'type': cls})
         return driver
 
     def __str__(self):
@@ -783,3 +783,25 @@ class NodesSubnetsDriver(DriverBase, metaclass=abc.ABCMeta):
         :param node: Node object
         """
         pass
+
+
+class QosPolicyDriver(DriverBase, metaclass=abc.ABCMeta):
+    """Provide Qos-policy for pods"""
+
+    ALIAS = 'qos_policy'
+
+    @abc.abstractmethod
+    def create_qos_policy(self, policy):
+        """Policy created or updated
+
+        :param qos policy: dict containing Kubernetes qos_policy  object
+        """
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def release_qos_policy(self, policy):
+        """Delete a qos policy
+
+        :param qos policy: dict containing qos_policy object
+        """
+        raise NotImplementedError()

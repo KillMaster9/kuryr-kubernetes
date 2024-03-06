@@ -168,7 +168,8 @@ def populate_networks_fixed_ips(ipv4, ipv6, networks):
 
 
 def is_stateful_set_pod(pod):
-    for owner in pod['metadata']['ownerReferences']:
+    owner_references = pod['metadata'].get('ownerReferences', [])
+    for owner in owner_references:
         if owner['kind'] == "StatefulSet" and owner['apiVersion'].startswith("apps/"):
             if pod['metadata']['name'].startswith(owner['name']):
                 return True, owner['name']
@@ -185,5 +186,8 @@ def is_static_ip_pod(pod):
 
 
 def get_owner_references_name(resource):
-    for owner in resource['metadata']['ownerReferences']:
+    owner_references = resource['metadata'].get('ownerReferences', [])
+    for owner in owner_references:
         return owner['name']
+
+    return None

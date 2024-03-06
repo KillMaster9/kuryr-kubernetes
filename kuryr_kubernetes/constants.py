@@ -128,7 +128,8 @@ K8s_ANNOTATION_POD_SUBNET = ICR_K8S_ANNOTATION_PREFIX + 'pod-subnet'
 K8s_ANNOTATION_PROJECT = ICR_K8S_ANNOTATION_PREFIX + 'vdc-id'
 K8S_ANNOTATION_IP_ADDRESS = 'cni.kuryr.openstack.org/ip_address'
 K8S_ANNOTATION_IP_POOL = 'cni.kuryr.openstack.org/ip_pool'
-
+K8S_ANNOTATION_INGRESS_RATE = 'cni.kuryr.openstack.org/ingress_rate'
+K8S_ANNOTATION_EGRESS_RATE = 'cni.kuryr.openstack.org/egress_rate'
 
 USERSPACE_DRIVERS = ['vfio-pci', 'uio', 'uio_pci_generic', 'igb_uio']
 MELLANOX_DRIVERS = ['mlx4_core', 'mlx5_core']

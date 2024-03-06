@@ -202,6 +202,9 @@ k8s_opts = [
                help=_("The prefix to use for additional vifs created by "
                       " multi_vif drivers"),
                default='eth'),
+    cfg.StrOpt('qos_policy_driver',
+               help=_("Driver for qos policies"),
+               default='default'),
 ]
 
 neutron_defaults = [

@@ -60,6 +60,8 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
                                 .get_instance())
         self.k8s = clients.get_kubernetes_client()
         self._drv_vif = drivers.PodVIFDriver.get_instance()
+        self._drv_qos_policy = drivers.QosPolicyDriver.get_instance()
+        self.os_net = clients.get_network_client()
 
     def on_present(self, kuryrport_crd, *args, **kwargs):
         if not kuryrport_crd['status']['vifs']:
@@ -180,6 +182,8 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
 
         for data in kuryrport_crd['status']['vifs'].values():
             vif = objects.base.VersionedObject.obj_from_primitive(data['vif'])
+            self.os_net.update_port(vif.id, qos_policy_id=None)
+
             if static_ip.is_static_ip_pod(pod) and data['default']:
                 self._drv_vif.release_vif(pod, vif,
                                           project_id,
@@ -191,6 +195,9 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
                 oslo_cfg.CONF.octavia_defaults.enforce_sg_rules):
             services = driver_utils.get_services()
             self._update_services(services, crd_pod_selectors, project_id)
+
+        # Remove qos policy
+        self._drv_qos_policy.release_qos_policy(pod)
 
         # Remove finalizer out of pod.
         self.k8s.remove_finalizer(pod, constants.POD_FINALIZER)
@@ -213,6 +220,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
 
         project_id = self._drv_project.get_project(pod)
         security_groups = self._drv_sg.get_security_groups(pod, project_id)
+        qos_policy = self._drv_qos_policy.get_qos_policy(pod, project_id)
         try:
             subnets = self._drv_subnets.get_subnets(pod, project_id)
         except (os_exc.ResourceNotFound, k_exc.K8sResourceNotFound):
@@ -254,6 +262,13 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
             LOG.warning("Ignoring event due to pod %s not being "
                         "scheduled yet.", pod_name)
             return False
+        # port bind qos policy
+        if qos_policy is not None:
+            qos_policy_id = qos_policy.id
+        else:
+            qos_policy_id = None
+
+        self.os_net.update_port(main_vif.id, qos_policy_id=qos_policy_id)
 
         vifs = {constants.DEFAULT_IFNAME: {'default': True, 'vif': main_vif}}
 
