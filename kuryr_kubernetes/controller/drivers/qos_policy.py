@@ -70,7 +70,7 @@ class QosPolicyDriver(base.QosPolicyDriver):
             egress_policy_rule = self.os_net.create_qos_bandwidth_limit_rule(qos_policy, **egress_rule)
             LOG.debug("pod %s: egress rate rule has been created, %s", pod['metadata']['name'], egress_policy_rule)
 
-            return qos_policy
+        return qos_policy
 
     def update_qos_policy_rule(self, pod, qos_policy):
         rules = {}
@@ -95,7 +95,8 @@ class QosPolicyDriver(base.QosPolicyDriver):
                            owner_name)
         try:
             qos_policy = self.os_net.find_qos_policy(qos_policy_name)
-            LOG.debug("release qos policy. pod name is %s, qos policy name is %s. qos_policy is %s", pod['metadata']['name'],
+            LOG.debug("release qos policy. pod name is %s, qos policy name is %s. qos_policy is %s",
+                      pod['metadata']['name'],
                       qos_policy_name, qos_policy)
         except os_exc.SDKException:
             LOG.exception("Error getting qos policy "
