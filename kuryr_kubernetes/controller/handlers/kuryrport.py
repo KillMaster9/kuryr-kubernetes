@@ -111,6 +111,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
                     security_groups = self._drv_sg.get_security_groups(
                         pod, project_id)
                     for ifname, data in vifs.items():
+                        self.os_net.update_port(data['vif'].id, qos_policy_id=None)
                         self._drv_vif_pool.release_vif(pod, data['vif'],
                                                        project_id,
                                                        security_groups)
@@ -182,6 +183,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
 
         for data in kuryrport_crd['status']['vifs'].values():
             vif = objects.base.VersionedObject.obj_from_primitive(data['vif'])
+
             self.os_net.update_port(vif.id, qos_policy_id=None)
 
             if static_ip.is_static_ip_pod(pod) and data['default']:
@@ -220,7 +222,12 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
 
         project_id = self._drv_project.get_project(pod)
         security_groups = self._drv_sg.get_security_groups(pod, project_id)
-        qos_policy = self._drv_qos_policy.get_qos_policy(pod, project_id)
+        owner_name = driver_utils.get_owner_references_name(pod)
+        if owner_name is None:
+            owner_name = pod['metadata']['name']
+        with lockutils.lock(owner_name):
+            qos_policy = self._drv_qos_policy.get_qos_policy(pod, project_id)
+
         try:
             subnets = self._drv_subnets.get_subnets(pod, project_id)
         except (os_exc.ResourceNotFound, k_exc.K8sResourceNotFound):
@@ -262,6 +269,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
             LOG.warning("Ignoring event due to pod %s not being "
                         "scheduled yet.", pod_name)
             return False
+
         # port bind qos policy
         if qos_policy is not None:
             qos_policy_id = qos_policy.id
@@ -269,6 +277,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
             qos_policy_id = None
 
         self.os_net.update_port(main_vif.id, qos_policy_id=qos_policy_id)
+        LOG.debug("update port %s, qos_policy_id is %s", main_vif.id, qos_policy_id)
 
         vifs = {constants.DEFAULT_IFNAME: {'default': True, 'vif': main_vif}}
 
@@ -288,6 +297,8 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
             LOG.exception("Kubernetes Client Exception creating "
                           "KuryrPort CRD: %s", ex)
             for ifname, data in vifs.items():
+                self.os_net.update_port(data['vif'].id, qos_policy_id=None)
+
                 if static_ip.is_static_ip_pod(pod) and data['default']:
                     self._drv_vif.release_vif(pod, data['vif'],
                                               project_id,

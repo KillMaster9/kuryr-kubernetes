@@ -687,7 +687,7 @@ def bump_networkpolicies(namespace=None):
 
 def is_network_policy_enabled():
     enabled_handlers = CONF.kubernetes.enabled_handlers
-    #svc_sg_driver = CONF.kubernetes.service_security_groups_driver
+    # svc_sg_driver = CONF.kubernetes.service_security_groups_driver
     return 'policy' in enabled_handlers
 
 
@@ -750,6 +750,7 @@ def get_namespace_subnet_cidr(namespace):
             namespaces_cidrs.append(st.cidr)
 
     return namespaces_cidrs
+
 
 def get_owner_references_name(resource):
     owner_references = resource['metadata'].get('ownerReferences', [])

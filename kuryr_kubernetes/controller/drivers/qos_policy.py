@@ -68,7 +68,7 @@ class QosPolicyDriver(base.QosPolicyDriver):
                 "direction": "egress"
             }
             egress_policy_rule = self.os_net.create_qos_bandwidth_limit_rule(qos_policy, **egress_rule)
-            LOG.debug("pod %s: ingress rate rule has been created, %s", pod['metadata']['name'], egress_policy_rule)
+            LOG.debug("pod %s: egress rate rule has been created, %s", pod['metadata']['name'], egress_policy_rule)
 
             return qos_policy
 
@@ -95,8 +95,10 @@ class QosPolicyDriver(base.QosPolicyDriver):
                            owner_name)
         try:
             qos_policy = self.os_net.find_qos_policy(qos_policy_name)
+            LOG.debug("release qos policy. pod name is %s, qos policy name is %s. qos_policy is %s", pod['metadata']['name'],
+                      qos_policy_name, qos_policy)
         except os_exc.SDKException:
-            LOG.exception("Error geting qos policy "
+            LOG.exception("Error getting qos policy "
                           " %s", pod['metadata']['name'])
             raise
 
@@ -126,6 +128,7 @@ class QosPolicyDriver(base.QosPolicyDriver):
             LOG.exception("Error geting qos policy "
                           " %s", pod['metadata']['name'])
             raise
+        LOG.debug("Pod name is %s, qos policy  is %s", metadata['name'], qos_policy)
 
         if qos_policy is None:
             return None, changed
@@ -133,11 +136,12 @@ class QosPolicyDriver(base.QosPolicyDriver):
         try:
             qos_policy_rules = self.os_net.qos_bandwidth_limit_rules(qos_policy=qos_policy.id)
         except os_exc.SDKException:
-            LOG.exception("Error geting qos policy "
+            LOG.exception("Error getting qos policy "
                           " %s", pod['metadata']['name'])
             raise
 
         for rule in qos_policy_rules:
+            LOG.debug("qos policy name is %s, qos policy rule is %s", qos_policy.name, rule)
             if rule.direction == 'ingress':
                 if ingress_rate is None:
                     return qos_policy, True
@@ -184,6 +188,9 @@ class QosPolicyDriver(base.QosPolicyDriver):
             return None
 
         qos_policy, changed = self._check_qos_policy_is_match(pod)
+        LOG.debug("Pod name is %s, ingress_rate is %s, egress_rate is %s, qos_policy is %s, changed is %s",
+                  pod['metadata']['name'], ingress_rate, egress_rate, qos_policy, changed)
+
         if qos_policy is not None and changed is False:
             return qos_policy
 
