@@ -14,7 +14,13 @@ RUN pip3 --no-cache-dir install -U pip \
     && python3 -m pip install -c $UPPER_CONSTRAINTS_FILE --no-cache-dir /opt/kuryr-kubernetes \
     && dnf -y remove gcc gcc-c++ python3-devel git \
     && dnf clean all \
-    && rm -rf /opt/kuryr-kubernetes \
+
+RUN cd /opt/kuryr-kubernetes/keystone/keystoneauth \
+    && python3 setup.py install \
+    && cd  /opt/kuryr-kubernetes/keystone/keystonemiddleware \
+    && python3 setup.py install
+
+RUN rm -rf /opt/kuryr-kubernetes \
     && groupadd -r kuryr -g 711 \
     && useradd -u 711 -g kuryr \
          -d /opt/kuryr-kubernetes \
