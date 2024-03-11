@@ -13,7 +13,7 @@ COPY . /opt/kuryr-kubernetes
 RUN pip3 --no-cache-dir install -U pip \
     && python3 -m pip install -c $UPPER_CONSTRAINTS_FILE --no-cache-dir /opt/kuryr-kubernetes \
     && dnf -y remove gcc gcc-c++ python3-devel git \
-    && dnf clean all \
+    && dnf clean all 
 
 RUN cd /opt/kuryr-kubernetes/keystone/keystoneauth \
     && python3 setup.py install \
