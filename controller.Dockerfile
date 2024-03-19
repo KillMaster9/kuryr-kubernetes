@@ -15,6 +15,9 @@ RUN pip3 --no-cache-dir install -U pip \
     && dnf -y remove gcc gcc-c++ python3-devel git \
     && dnf clean all
 
+RUN python3 -m pip uninstall keystoneauth1 -y \
+    && python3 -m pip uninstall keystonemiddleware -y
+
 RUN cd /opt/kuryr-kubernetes/keystone/keystoneauth \
     && python3 setup.py install \
     && cd  /opt/kuryr-kubernetes/keystone/keystonemiddleware \
