@@ -71,7 +71,8 @@ class LBaaSv2Driver(base.LBaaSDriver):
         #         lbaas.get_api_major_version(version=_OCTAVIA_TAGGING_VERSION)
         #         if bug https://storyboard.openstack.org/#!/story/2007040 gets
         #         fixed one day.
-        v = self.get_octavia_version()
+        #v = self.get_octavia_version()
+        v = _OCTAVIA_DL_VERSION
         if v >= _OCTAVIA_ACL_VERSION:
             self._octavia_acls = True
             LOG.info('Octavia supports ACLs for Amphora provider.')

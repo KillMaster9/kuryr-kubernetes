@@ -119,7 +119,7 @@ Create the password of the settings ConfigMap to use.
 Create the authType of the settings ConfigMap to use.
 */}}
 {{- define "kuryr.configMap.authType" -}}
-{{- default "password" .Values.config.neutron.authType }}
+{{- default "iampassword" .Values.config.neutron.authType }}
 {{- end -}}
 
 {{/*
@@ -129,3 +129,30 @@ Create the debug of the settings ConfigMap to use.
 {{- default "true" .Values.config.debug }}
 {{- end -}}
 
+{{/*
+Create the grantType of the settings ConfigMap to use.
+*/}}
+{{- define "kuryr.configMap.grantType" -}}
+{{- default "password" .Values.config.neutron.grantType }}
+{{- end -}}
+
+{{/*
+Create the clientID of the settings ConfigMap to use.
+*/}}
+{{- define "kuryr.configMap.clientID" -}}
+{{- default "admin-cli" .Values.config.neutron.clientID }}
+{{- end -}}
+
+{{/*
+Create the insecure of the settings ConfigMap to use.
+*/}}
+{{- define "kuryr.configMap.insecure" -}}
+{{- default "True" .Values.config.neutron.insecure }}
+{{- end -}}
+
+{{/*
+Create the networkApiVersion of the settings ConfigMap to use.
+*/}}
+{{- define "kuryr.configMap.networkApiVersion" -}}
+{{- default "2" .Values.config.neutron.networkApiVersion }}
+{{- end -}}

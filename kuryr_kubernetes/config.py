@@ -182,7 +182,7 @@ k8s_opts = [
     cfg.ListOpt('enabled_handlers',
                 help=_("The comma-separated handlers that should be "
                        "registered for watching in the pipeline."),
-                default=['vif', 'kuryrport']),
+                default=['vif', 'kuryrport', 'pod_label', 'namespace', 'policy', 'kuryrnetworkpolicy']),
     cfg.BoolOpt('controller_ha',
                 help=_('Enable kuryr-controller active/passive HA. Only '
                        'supported in containerized deployments on Kubernetes '
@@ -294,6 +294,45 @@ nested_vif_driver_opts = [
                default=3),
 ]
 
+neutron_opts = [
+    cfg.StrOpt('enable_dhcp',
+               default='True',
+               help=_('Enable or Disable dhcp for neutron subnets.')),
+    cfg.StrOpt('default_subnetpool_v4',
+               default='kuryr',
+               help=_('Name of default subnetpool version 4')),
+    cfg.StrOpt('default_subnetpool_v6',
+               default='kuryr6',
+               help=_('Name of default subnetpool version 6')),
+    cfg.BoolOpt('vif_plugging_is_fatal',
+                default=False,
+                help=_("Whether a plugging operation is failed if the port "
+                       "to plug does not become active")),
+    cfg.IntOpt('vif_plugging_timeout',
+               default=0,
+               help=_("Seconds to wait for port to become active")),
+    cfg.StrOpt('region_name',
+               default=None,
+               help=_('Region name of the neturon endpoint to use.')),
+    cfg.StrOpt('endpoint_type',
+               default='public',
+               choices=['public', 'admin', 'internal'],
+               help=_('Type of the neutron endpoint to use. This endpoint '
+                      'will be looked up in the keystone catalog and should '
+                      'be one of public, internal or admin.')),
+    cfg.StrOpt('network_api_version',
+               default='2',
+               help=_('network api version, default is 2')),
+    cfg.StrOpt('network_endpoint',
+               default='',
+               help=_('network endpoint, example neutron:http://100.2.216.244:39696/v2.0/')),
+]
+
+neutron_group = cfg.OptGroup(
+    'neutron',
+    title='Neutron Options',
+    help=_('Configuration options for OpenStack Neutron'))
+
 DEFAULT_PHYSNET_SUBNET_MAPPINGS = {}
 DEFAULT_DEVICE_MAPPINGS = []
 sriov_opts = [
@@ -356,9 +395,11 @@ CONF.register_opts(vhostuser, group='vhostuser')
 
 CONF.register_opts(lib_config.core_opts)
 CONF.register_opts(lib_config.binding_opts, 'binding')
-lib_config.register_neutron_opts(CONF)
-
+# lib_config.register_neutron_opts(CONF)
+CONF.register_group(neutron_group)
+CONF.register_opts(neutron_opts, group=neutron_group)
 logging.register_options(CONF)
+lib_config.register_keystoneauth_opts(CONF, neutron_group.name)
 
 
 def init(args, **kwargs):

@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kuryr-config
+  namespace: kube-system
+data:
+  kuryr.conf: |
+    [DEFAULT]
+    debug = true
+
+    [kubernetes]
+    api_root = https://127.0.0.1:6443
+    token_file = /var/run/secrets/kubernetes.io/serviceaccount/token
+    ssl_ca_crt_file = /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    enabled_handlers=vif,kuryrport,pod_label,namespace,networkpolicy,kuryrnetworkpolicy
+    pod_security_groups_driver=policy
+    network_policy_project_driver=default
+    namespace_project_driver=default
+   
+    [neutron]
+    signing_dir = /var/cache/kuryr
+    username = TmytcJ9S
+    password = Inspur1!
+    auth_url = https://100.2.216.244:443/auth/realms/master/protocol/openid-connect/
+    auth_type = iampassword
+    grant_type = password
+    client_id = admin-cli
+    insecure = True
+    network_api_version = 2
+    network_endpoint = http://100.2.216.244:39696/v2.0/
+
+    [neutron_defaults]
+    ovs_bridge = br-int
+    service_subnet = 26a0c0a7-d20e-4e79-bfaf-5a1a3374d187
+    pod_security_groups = 
+    pod_subnet = ee645b07-ea66-4d21-8f90-9e9ec3be3c6a
+    project = 2e12133fb1bc42fea2cd8a6f9180853b
+
+    [namespace_subnet]
+    pod_subnet_pool = 
+
+    [cni_daemon]
+    docker_mode = true
+    netns_proc_dir = /host_proc
+
+    [vif_plug_ovs_privileged]
+    helper_command=privsep-helper
+
+    [vif_plug_linux_bridge_privileged]
+    helper_command=privsep-helper
+
+    [pod_vif_nested]
+    worker_nodes_subnets = ee645b07-ea66-4d21-8f90-9e9ec3be3c6a
+
+    [binding]
+    driver = kuryr.lib.binding.drivers.vlan
+    link_iface = bond0

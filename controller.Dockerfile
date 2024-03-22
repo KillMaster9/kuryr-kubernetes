@@ -16,12 +16,12 @@ RUN pip3 --no-cache-dir install -U pip \
     && dnf clean all
 
 RUN python3 -m pip uninstall keystoneauth1 -y \
-    && python3 -m pip uninstall keystonemiddleware -y
+    && python3 -m pip uninstall keystonemiddleware -y \
+    && python3 -m pip uninstall openstacksdk -y
 
-RUN cd /opt/kuryr-kubernetes/keystone/keystoneauth \
-    && python3 setup.py install \
-    && cd  /opt/kuryr-kubernetes/keystone/keystonemiddleware \
-    && python3 setup.py install
+RUN cd /opt/kuryr-kubernetes/kuryr_patch \
+    && python3 -m pip install keystoneauth1-4.0.1-py3-none-any.whl \
+    && python3 -m pip install openstacksdk-0.57.0-py3-none-any.whl
 
 RUN rm -rf /opt/kuryr-kubernetes \
     && groupadd -r kuryr -g 711 \

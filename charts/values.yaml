@@ -123,18 +123,18 @@ config:
     k8sApiRoot:
   # The neutron auth config
   neutron:
-    # default is "default"
-    projectDomainName:
-    projectId:
-    # default is "default"
-    userDomainName:
     # default is "neutron"
     userName:
     # default is "Inspur1!"
     password:
     authURL:
-    # default is "password"
+    # default is "iampassword"
     authType:
+    grantType:
+    clientID:
+    insecure:
+    networkApiVersion:
+    networkEndpoint:
   neutronDefaults:
     serviceSubnet:
     podSecurityGroups:

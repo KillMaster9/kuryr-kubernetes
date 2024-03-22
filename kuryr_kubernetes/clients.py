@@ -30,7 +30,9 @@ from openstack import utils as os_utils
 from kuryr_kubernetes import config
 from kuryr_kubernetes import k8s_client
 from kuryr_kubernetes.pod_resources import client as pr_client
+from oslo_log import log as logging
 
+LOG = logging.getLogger(__name__)
 _clients = {}
 _NEUTRON_CLIENT = 'neutron-client'
 _KUBERNETES_CLIENT = 'kubernetes-client'
@@ -173,9 +175,22 @@ def setup_openstacksdk():
     # lower-constraints supports it.
     os_listener.Listener.allowed_cidrs = os_resource.Body('allowed_cidrs',
                                                           type=list)
+    kwargs = {
+        'username': auth_plugin.username,
+        'password': auth_plugin.password,
+        'auth_url': auth_plugin.auth_url,
+        'auth_type': 'iampassword',
+        'grant_type': auth_plugin.grant_type,
+        'client_id': auth_plugin.client_id,
+        'insecure': True,
+        'network_api_version': config.CONF.neutron.network_api_version,
+        'network_endpoint': config.CONF.neutron.network_endpoint,
+    }
+    LOG.debug("SetupOpenstack-client")
     conn = connection.Connection(
         session=session,
-        region_name=getattr(config.CONF.neutron, 'region_name', None))
+        region_name=getattr(config.CONF.neutron, 'region_name', None),
+        **kwargs)
     conn.network.create_ports = partial(_create_ports, conn.network)
     conn.network.add_trunk_subports = partial(_add_trunk_subports,
                                               conn.network)
