@@ -11,7 +11,7 @@ COPY ./coordinator/coordinator  /go/bin/coordinator
 #    && GO111MODULE=auto go build -o /go/bin/coordinator .
 ##RUN GO111MODULE=auto go build -o /go/bin/coordinator ./coordinator/main.go
 
-FROM quay.io/centos/centos:stream8
+FROM quay.io/centos/centos:stream9
 LABEL authors="Antoni Segura Puimedon<toni@kuryr.org>, Michał Dulko<mdulko@redhat.com>"
 
 ARG UPPER_CONSTRAINTS_FILE="https://releases.openstack.org/constraints/upper/xena"
