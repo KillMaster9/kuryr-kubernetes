@@ -12,7 +12,7 @@ data:
     api_root = https://127.0.0.1:6443
     token_file = /var/run/secrets/kubernetes.io/serviceaccount/token
     ssl_ca_crt_file = /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-    enabled_handlers=vif,kuryrport,pod_label,namespace,networkpolicy,kuryrnetworkpolicy
+    enabled_handlers=vif,kuryrport,pod_label,namespace,policy,kuryrnetworkpolicy
     pod_security_groups_driver=policy
     network_policy_project_driver=default
     namespace_project_driver=default

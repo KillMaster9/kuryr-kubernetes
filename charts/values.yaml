@@ -123,24 +123,35 @@ config:
     k8sApiRoot:
   # The neutron auth config
   neutron:
-    # default is "neutron"
+    # default is "TmytcJ9S"
     userName:
     # default is "Inspur1!"
     password:
+    # must give a value when use the authURL.
+    # format is: https://100:2:216:244:443/auth/realms/master/protocol/openid-connect/
     authURL:
     # default is "iampassword"
     authType:
+    # default is "password"
     grantType:
+    # default is "admin-cli"
     clientID:
+    # default is "True"
     insecure:
+    # default is "2"
     networkApiVersion:
+    # format is http://100:2:216:244:39696/v2.0/. must give a value when use the networkEndpoint.
     networkEndpoint:
   neutronDefaults:
+    # this value is servicesubnetID in neutron. must give a value.
     serviceSubnet:
     podSecurityGroups:
+    # this value is podsubnetID in neutron. must give a value.
     podSubnetId:
+    # the system VDC ID in neutron. must give a value.
     project:
   podVifNested:
+    # this value is workerNodesSubnets in neutron. the vaule is equal to podSubnetId.
     workerNodesSubnets:
   binding:
     linkIface:

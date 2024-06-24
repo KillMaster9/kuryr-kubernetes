@@ -19,7 +19,7 @@ data:
     signing_dir = /var/cache/kuryr
     username = {{ template "kuryr.configMap.userName" .}}
     password = {{ template "kuryr.configMap.password" .}}
-    auth_url = {{.Values.config.neutron.authURL}}}
+    auth_url = {{.Values.config.neutron.authURL}}
     auth_type = {{ template "kuryr.configMap.authType" .}}
     grant_type = {{ template "kuryr.configMap.grantType" .}}
     client_id = {{ template "kuryr.configMap.clientID" . }}

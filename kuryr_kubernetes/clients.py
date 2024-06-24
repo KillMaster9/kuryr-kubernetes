@@ -186,7 +186,8 @@ def setup_openstacksdk():
         'network_api_version': config.CONF.neutron.network_api_version,
         'network_endpoint': config.CONF.neutron.network_endpoint,
     }
-    LOG.debug("SetupOpenstack-client")
+    LOG.debug("SetupOpenstack-client, setup args is %s", kwargs)
+
     conn = connection.Connection(
         session=session,
         region_name=getattr(config.CONF.neutron, 'region_name', None),

@@ -105,7 +105,7 @@ Create the user_domain_name of the settings ConfigMap to use.
 Create the user_name of the settings ConfigMap to use.
 */}}
 {{- define "kuryr.configMap.userName" -}}
-{{- default "neutron" .Values.config.neutron.userName }}
+{{- default "TmytcJ9S" .Values.config.neutron.userName }}
 {{- end -}}
 
 {{/*
