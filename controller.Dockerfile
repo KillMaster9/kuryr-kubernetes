@@ -3,6 +3,9 @@ LABEL authors="Antoni Segura Puimedon<toni@kuryr.org>, Michał Dulko<mdulko@redh
 
 ARG UPPER_CONSTRAINTS_FILE="https://releases.openstack.org/constraints/upper/xena"
 
+RUN cd /etc/yum.repos.d/ \
+    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+
 RUN dnf upgrade -y \
     && dnf install -y epel-release \
     && dnf install -y --setopt=tsflags=nodocs python3-pip libstdc++ \
