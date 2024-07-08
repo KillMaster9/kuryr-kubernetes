@@ -1,4 +1,5 @@
-FROM golang:1.21-alpine as builder
+#FROM golang:1.21-alpine as builder
+FROM registry.cn-hangzhou.aliyuncs.com/testwydimage/docker.io.library.golang:1.21-alpine as builder
 
 WORKDIR /go/src/opendev.com/kuryr-kubernetes
 COPY . .
