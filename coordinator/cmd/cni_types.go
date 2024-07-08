@@ -174,9 +174,13 @@ func validateHwPrefix(prefix string) error {
 }
 
 func ValidateRoutes(conf *Config) error {
-	//if len(conf.ServiceCIDR) == 0 {
-	//	conf.ServiceCIDR = coordinatorConfig.ServiceCIDR
-	//}
+	if len(conf.ServiceCIDR) == 0 {
+		serviceCIDRs := os.Getenv("KUBE_SERVICE_CIDR")
+		cidrs := strings.Split(serviceCIDRs, ",")
+		for _, cidr := range cidrs {
+			conf.ServiceCIDR = append(conf.ServiceCIDR, cidr)
+		}
+	}
 	//
 	//if len(conf.OverlayPodCIDR) == 0 {
 	//	conf.OverlayPodCIDR = coordinatorConfig.OverlayPodCIDR
