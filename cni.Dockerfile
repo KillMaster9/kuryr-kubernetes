@@ -18,13 +18,6 @@ ARG UPPER_CONSTRAINTS_FILE="https://releases.openstack.org/constraints/upper/xen
 ARG OSLO_LOCK_PATH=/var/kuryr-lock
 ARG RDO_REPO=https://repos.fedorapeople.org/repos/openstack/archived/openstack-xena/rdo-release-xena-1.el8.noarch.rpm
 
-RUN cd /etc/yum.repos.d/ \
-    && sed -i 's/^mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
-    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
-    && yum update -y
-
-RUN echo "mirror.centos.org  vault.centos.org" >> /etc/hosts
-
 # NOTE(gryf): There is a sed substitution to make package manager to
 # cooperate. It might be a subject to change in the future, either when
 # yum/dnf starts to respect yum.conf variables, or mirror location would
@@ -32,6 +25,8 @@ RUN echo "mirror.centos.org  vault.centos.org" >> /etc/hosts
 RUN dnf upgrade -y && dnf install -y epel-release $RDO_REPO \
     && sed -e 's/$releasever/8-stream/' -i /etc/yum.repos.d/messaging.repo \
     && sed -e 's/$basearch/x86_64/' -i /etc/yum.repos.d/messaging.repo \
+    && sed -i 's/^mirrorlist/#mirrorlist/g' /etc/yum.repos.d/* \
+    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/* \
     && dnf install -y --setopt=tsflags=nodocs python3-pip openvswitch sudo iproute libstdc++ pciutils kmod-libs \
     && dnf install -y --setopt=tsflags=nodocs gcc gcc-c++ python3-devel git
 
