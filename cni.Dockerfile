@@ -19,6 +19,8 @@ ARG UPPER_CONSTRAINTS_FILE="https://releases.openstack.org/constraints/upper/xen
 ARG OSLO_LOCK_PATH=/var/kuryr-lock
 ARG RDO_REPO=https://repos.fedorapeople.org/repos/openstack/archived/openstack-xena/rdo-release-xena-1.el8.noarch.rpm
 
+RUN sed -i 's/^mirrorlist/#mirrorlist/g' /etc/yum.repos.d/* \
+    &&  sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/*
 # NOTE(gryf): There is a sed substitution to make package manager to
 # cooperate. It might be a subject to change in the future, either when
 # yum/dnf starts to respect yum.conf variables, or mirror location would
