@@ -99,6 +99,8 @@ cni:
   ## Selects which runtime class will be used by the pod.
   # runtimeClassName:
   podAnnotations: { }
+  # k8s cluster service CIDR, For example "ipv4_service_cidr,ipv6_service_cidr"
+  kubeServiceCIDR: ""
   livenessProbe:
     enabled: true
     failureThreshold: 3

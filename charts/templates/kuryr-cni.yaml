@@ -42,6 +42,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: KUBE_SERVICE_CIDR
+              value: {{ .Values.cni.kubeServiceCIDR }}
           securityContext:
             privileged: true
         {{- if .Values.cni.livenessProbe.enabled }}
