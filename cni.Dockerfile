@@ -11,15 +11,17 @@ RUN cd ./coordinator \
     && GO111MODULE=auto go build -o /go/bin/coordinator .
 ##RUN GO111MODULE=auto go build -o /go/bin/coordinator ./coordinator/main.go
 
-FROM quay.io/centos/centos:stream9
+FROM quay.io/centos/centos:stream8
 LABEL authors="Antoni Segura Puimedon<toni@kuryr.org>, Michał Dulko<mdulko@redhat.com>"
 
 ARG UPPER_CONSTRAINTS_FILE="https://releases.openstack.org/constraints/upper/xena"
 ARG OSLO_LOCK_PATH=/var/kuryr-lock
 ARG RDO_REPO=https://repos.fedorapeople.org/repos/openstack/archived/openstack-xena/rdo-release-xena-1.el8.noarch.rpm
 
-#RUN cd /etc/yum.repos.d/ \
-#    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+RUN cd /etc/yum.repos.d/ \
+    && sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
+    && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* \
+    && yum update -y
 
 # NOTE(gryf): There is a sed substitution to make package manager to
 # cooperate. It might be a subject to change in the future, either when
