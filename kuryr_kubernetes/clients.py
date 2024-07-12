@@ -176,7 +176,7 @@ def setup_openstacksdk():
     os_listener.Listener.allowed_cidrs = os_resource.Body('allowed_cidrs',
                                                           type=list)
     kwargs = {
-        'username': config.CONF.neutron.username,
+        'username': auth_plugin.username,
         'password': auth_plugin.password,
         'auth_url': auth_plugin.auth_url,
         'auth_type': 'iampassword',
