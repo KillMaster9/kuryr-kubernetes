@@ -326,6 +326,9 @@ neutron_opts = [
     cfg.StrOpt('network_endpoint',
                default='',
                help=_('network endpoint, example neutron:http://100.2.216.244:39696/v2.0/')),
+    cfg.StrOpt('username',
+               default='TmytcJ9S',
+               help=_('IAM username')),
 ]
 
 neutron_group = cfg.OptGroup(
