@@ -30,6 +30,7 @@ from openstack import utils as os_utils
 from kuryr_kubernetes import config
 from kuryr_kubernetes import k8s_client
 from kuryr_kubernetes.pod_resources import client as pr_client
+from kuryr_kubernetes.pod_resources import checkpoint_client as cpr_client
 from oslo_log import log as logging
 
 LOG = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ _NEUTRON_CLIENT = 'neutron-client'
 _KUBERNETES_CLIENT = 'kubernetes-client'
 _OPENSTACKSDK = 'openstacksdk'
 _POD_RESOURCES_CLIENT = 'pod-resources-client'
+_CHECKPOINT_POD_RESOURCES_CLIENT = 'checkpoint_pod-resources-client'
 
 
 def get_network_client():
@@ -59,6 +61,9 @@ def get_kubernetes_client():
 def get_pod_resources_client():
     return _clients[_POD_RESOURCES_CLIENT]
 
+
+def get_checkpoint_pod_resources_client():
+    return _clients[_CHECKPOINT_POD_RESOURCES_CLIENT]
 
 def get_compute_client():
     return _clients[_OPENSTACKSDK].compute
@@ -203,3 +208,7 @@ def setup_openstacksdk():
 def setup_pod_resources_client():
     root_dir = config.CONF.sriov.kubelet_root_dir
     _clients[_POD_RESOURCES_CLIENT] = pr_client.PodResourcesClient(root_dir)
+
+
+def setup_checkpoint_pod_resources_client():
+    _clients[_CHECKPOINT_POD_RESOURCES_CLIENT] = cpr_client.get_checkpoint()

@@ -50,7 +50,7 @@ class VIFSriovDriver(health.HealthHandler, b_base.BaseBindingDriver):
 
     @release_lock_object
     def connect(self, vif, ifname, netns, container_id):
-        pci_info = self._process_vif(vif, ifname, netns)
+        pci_info = self._process_vif_by_checkpoint(vif, ifname, netns)
         if config.CONF.sriov.enable_node_annotations:
             self._save_pci_info(vif.id, pci_info)
 
@@ -101,6 +101,37 @@ class VIFSriovDriver(health.HealthHandler, b_base.BaseBindingDriver):
                     pci_info = self._compute_pci(pci, driver, vif.pod_link,
                                                  vif, ifname, netns)
                     return pci_info
+
+    def _process_vif_by_checkpoint(self, vif, ifname, netns):
+        pr_client = clients.get_checkpoint_pod_resources_client()
+        pod_resources_map = pr_client.get_pod_resource_map(vif.pod_link)
+        resource_name = self._get_resource_by_physnet(vif.physnet)
+        driver = self._get_driver_by_res(resource_name)
+        resource = self._make_resource(resource_name)
+        LOG.debug("Vif %s will correspond to pci device belonging to "
+                  "resource %s", vif, resource)
+        container_devices = None
+        pod_devices = self._get_pod_devices(vif.pod_link)
+        try:
+            container_devices = pod_resources_map[resource]
+        except KeyError:
+            container_devices = None
+        except Exception as ex:
+            LOG.exception("Exception while getting annotations: %s", ex)
+
+        if not container_devices:
+            raise exceptions.CNIError(
+                "No resources are discovered for pod {}".format(vif.pod_name))
+        LOG.debug("Looking for PCI device used by kubelet service and not "
+                  "used by pod %s yet ...", vif.pod_name)
+
+        for pci in container_devices:
+            if pci in pod_devices:
+                continue
+            LOG.debug("Appropriate PCI device %s is found", pci)
+            pci_info = self._compute_pci(pci, driver, vif.pod_link,
+                                         vif, ifname, netns)
+            return pci_info
 
     def _get_resource_by_physnet(self, physnet):
         mapping = config.CONF.sriov.physnet_resource_mappings
@@ -329,7 +360,7 @@ class VIFSriovDriver(health.HealthHandler, b_base.BaseBindingDriver):
     def _acquire(self, path):
         if self._lock and self._lock.acquired:
             raise RuntimeError(_("Attempting to lock {} when {} "
-                               "is already locked.").format(path, self._lock))
+                                 "is already locked.").format(path, self._lock))
         self._lock = lockutils.InterProcessLock(path=path)
         return self._lock.acquire()
 

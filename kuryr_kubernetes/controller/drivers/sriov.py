@@ -38,6 +38,7 @@ class SriovVIFDriver(neutron_vif.NeutronPodVIFDriver):
     ALIAS = 'sriov_pod_vif'
 
     def __init__(self):
+        super().__init__()
         self._physnet_subnet_mapping = self._get_physnet_subnet_mapping()
         self._physnet_resname_mapping = self._get_physnet_resname_mapping()
         self._res_prefix = config.CONF.sriov.device_plugin_resource_prefix
