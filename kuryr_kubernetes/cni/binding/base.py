@@ -106,18 +106,24 @@ def _configure_l3(vif, ifname, netns, is_default_gateway):
         routes = ipdb.routes
         for subnet in vif.network.subnets.objects:
             for route in subnet.routes.objects:
-                routes.add(gateway=str(route.gateway),
-                           dst=str(route.cidr)).commit()
-            if is_default_gateway and hasattr(subnet, 'gateway'):
                 try:
-                    routes.add(gateway=str(subnet.gateway),
-                               dst='default').commit()
+                    routes.add(gateway=str(route.gateway),
+                               dst=str(route.cidr)).commit()
                 except pyroute2.NetlinkError as ex:
-                    if ex.code != errno.EEXIST:
-                        raise
                     LOG.debug("Default route already exists in pod for vif=%s."
-                              " Did not overwrite with requested gateway=%s",
-                              vif, subnet.gateway)
+                          " Did not overwrite with requested gateway=%s",
+                          vif, subnet.gateway)
+                    raise
+        if is_default_gateway and hasattr(subnet, 'gateway'):
+            try:
+                routes.add(gateway=str(subnet.gateway),
+                           dst='default').commit()
+            except pyroute2.NetlinkError as ex:
+                if ex.code != errno.EEXIST:
+                    raise
+                LOG.debug("Default route already exists in pod for vif=%s."
+                          " Did not overwrite with requested gateway=%s",
+                          vif, subnet.gateway)
 
 
 def _need_configure_l3(vif):

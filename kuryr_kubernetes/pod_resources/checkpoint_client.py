@@ -34,7 +34,7 @@ class CheckpointPodResourcesClient:
         k8s = clients.get_kubernetes_client()
         pod = k8s.get(pod_link)
 
-        pod_id = pod.metadata.uid
+        pod_id = pod['metadata']['uid']
         resource_map: Dict[str, List[str]] = {}
 
         if not pod_id:
@@ -43,9 +43,9 @@ class CheckpointPodResourcesClient:
         for entry in self.pod_entries:
             if entry['PodUID'] == pod_id:
                 if entry['ResourceName'] in resource_map:
-                    resource_map[entry['ResourceName']].extend(entry['DeviceIDs'])
+                    resource_map[entry['ResourceName']].extend(list(entry["DeviceIDs"].values()))
                 else:
-                    resource_map[entry['ResourceName']] = [entry['DeviceIDs']]
+                    resource_map[entry['ResourceName']] = list(entry["DeviceIDs"].values())
 
         return resource_map
 

@@ -22,7 +22,8 @@ function deploy() {
       "kuryr_conf": "/etc/kuryr/kuryr.conf",
       "debug": true
     },{
-      "type": "coordinator"
+      "type": "coordinator",
+      "serviceCIDR": ["$KUBE_SERVICE_CIDR"]
     }
   ]
 }

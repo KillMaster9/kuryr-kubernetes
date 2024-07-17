@@ -28,6 +28,7 @@ from kuryr_kubernetes import constants
 from kuryr_kubernetes import exceptions
 from kuryr_kubernetes.handlers import health
 from kuryr_kubernetes import utils
+from kuryr_kubernetes.pod_resources import checkpoint_client as cpr_client
 
 LOG = logging.getLogger(__name__)
 CONF = cfg.CONF
@@ -46,6 +47,7 @@ class VIFSriovDriver(health.HealthHandler, b_base.BaseBindingDriver):
             finally:
                 if self._lock and self._lock.acquired:
                     self._lock.release()
+
         return wrapped
 
     @release_lock_object
@@ -103,7 +105,7 @@ class VIFSriovDriver(health.HealthHandler, b_base.BaseBindingDriver):
                     return pci_info
 
     def _process_vif_by_checkpoint(self, vif, ifname, netns):
-        pr_client = clients.get_checkpoint_pod_resources_client()
+        pr_client = cpr_client.get_checkpoint()
         pod_resources_map = pr_client.get_pod_resource_map(vif.pod_link)
         resource_name = self._get_resource_by_physnet(vif.physnet)
         driver = self._get_driver_by_res(resource_name)
@@ -125,13 +127,14 @@ class VIFSriovDriver(health.HealthHandler, b_base.BaseBindingDriver):
         LOG.debug("Looking for PCI device used by kubelet service and not "
                   "used by pod %s yet ...", vif.pod_name)
 
-        for pci in container_devices:
-            if pci in pod_devices:
-                continue
-            LOG.debug("Appropriate PCI device %s is found", pci)
-            pci_info = self._compute_pci(pci, driver, vif.pod_link,
-                                         vif, ifname, netns)
-            return pci_info
+        for devices in container_devices:
+            for pci in devices:
+                if pci in pod_devices:
+                    continue
+                LOG.debug("Appropriate PCI device %s is found", pci)
+                pci_info = self._compute_pci(pci, driver, vif.pod_link,
+                                             vif, ifname, netns)
+                return pci_info
 
     def _get_resource_by_physnet(self, physnet):
         mapping = config.CONF.sriov.physnet_resource_mappings
