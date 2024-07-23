@@ -60,7 +60,7 @@ class SriovVIFDriver(neutron_vif.NeutronPodVIFDriver):
                                     subnets, security_groups)
 
         port = os_net.create_port(**rq)
-        self._check_port_binding([port])
+        #self._check_port_binding([port])
         if not self._tag_on_creation:
             c_utils.tag_neutron_resources([port])
         vif = ovu.neutron_to_osvif_vif(vif_plugin, port, subnets)
@@ -176,8 +176,8 @@ class SriovVIFDriver(neutron_vif.NeutronPodVIFDriver):
             'device_owner': kl_const.DEVICE_OWNER + ':sriov',
             'device_id': c_utils.get_device_id(pod),
             'admin_state_up': True,
-            'binding:vnic_type': 'direct',
-            'binding:host_id': c_utils.get_host_id(pod),
+            'binding:vnic_type': 'baremetal',
+            #'binding:host_id': c_utils.get_host_id(pod),
         }
 
         if security_groups:

@@ -113,7 +113,7 @@ class VIFSriovDriver(health.HealthHandler, b_base.BaseBindingDriver):
         LOG.debug("Vif %s will correspond to pci device belonging to "
                   "resource %s", vif, resource)
         container_devices = None
-        pod_devices = self._get_pod_devices(vif.pod_link)
+#       pod_devices = self._get_pod_devices(vif.pod_link)
         try:
             container_devices = pod_resources_map[resource]
         except KeyError:
@@ -129,8 +129,8 @@ class VIFSriovDriver(health.HealthHandler, b_base.BaseBindingDriver):
 
         for devices in container_devices:
             for pci in devices:
-                if pci in pod_devices:
-                    continue
+                # if pci in pod_devices:
+                #     continue
                 LOG.debug("Appropriate PCI device %s is found", pci)
                 pci_info = self._compute_pci(pci, driver, vif.pod_link,
                                              vif, ifname, netns)
