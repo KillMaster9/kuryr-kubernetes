@@ -212,10 +212,41 @@ class NestedVlanPodVIFDriver(nested_vif.NestedPodVIFDriver):
         try:
             return port['trunk_details']['trunk_id']
         except (KeyError, TypeError):
-            LOG.error("Neutron port is missing trunk details. "
+            LOG.warning("Neutron port is missing trunk details, Create Trunk Port by port %s", port['id'])
+            trunk_port_id = self._add_trunk_port(port)
+            if trunk_port_id is not None:
+                return trunk_port_id
+            else:
+                LOG.error("Neutron port is missing trunk details. "
+                          "Please ensure that k8s node port is associated "
+                          "with a Neutron vlan trunk")
+                raise k_exc.K8sNodeTrunkPortFailure
+
+    def _add_trunk_port(self, port):
+        os_net = clients.get_network_client()
+        trunk_port_id = None
+        try:
+            port_id = port['id']
+        except (KeyError, TypeError):
+            LOG.error("Neutron port is missing port id. "
                       "Please ensure that k8s node port is associated "
-                      "with a Neutron vlan trunk")
+                      "with a Neutron Port")
+            raise k_exc.PortNotReady
+        try:
+            trunk_port = os_net.create_trunk(port_id=port_id,
+                                             project_id="-1",
+                                             name=f"trunk-{port_id[:5]}",
+                                             admin_state_up=True)
+        except os_exc.SDKException as e:
+            LOG.error("Create Trunk port is Error. "
+                      "The Error message: %s", e)
             raise k_exc.K8sNodeTrunkPortFailure
+
+        if trunk_port is not None:
+            trunk_port_id = trunk_port['id']
+            LOG.warning("Neutron port is Created Success. Trunk Port info is %s", trunk_port)
+
+        return trunk_port_id
 
     def _add_subport(self, trunk_id, subport, requested_vlan_id=None):
         """Adds subport port to Neutron trunk
