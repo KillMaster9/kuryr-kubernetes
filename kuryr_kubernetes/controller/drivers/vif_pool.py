@@ -893,6 +893,8 @@ class NestedVIFPool(BaseVIFPool):
                     raise exceptions.ResourceNotReady(pod)
             else:
                 min_date = -1
+                min_sg_group = None
+
                 for sg_group, date in list(pool_updates.items()):
                     if pool_ports.get(sg_group):
                         if min_date == -1 or date < min_date:
@@ -902,13 +904,16 @@ class NestedVIFPool(BaseVIFPool):
                     # pool is empty, no port to reuse
                     raise exceptions.ResourceNotReady(pod)
                 port_id = pool_ports[min_sg_group].pop()
+
             if not security_groups:
                 os_net.update_port(port_id, security_groups=None)
             else:
                 os_net.update_port(port_id, security_groups=list(security_groups))
 
         if config.CONF.kubernetes.port_debug:
-            os_net.update_port(port_id, name=c_utils.get_port_name(pod))
+            os_net.update_port(port_id,
+                               name=c_utils.get_port_name(pod),
+                               device_id=pod['metadata']['uid'])
         # check if the pool needs to be populated
         if (self._get_pool_size(pool_key) <
                 oslo_cfg.CONF.vif_pool.ports_pool_min):
@@ -1049,6 +1054,8 @@ class NestedVIFPool(BaseVIFPool):
         if not available_subports:
             return
 
+        node_ips = c_utils.get_cluster_node_ips()
+
         # FIXME(ltomasbo): Workaround for ports already detached from trunks
         # whose status is ACTIVE
         trunks_subports = [subport_id['port_id']
@@ -1066,6 +1073,9 @@ class NestedVIFPool(BaseVIFPool):
         for trunk_id, parent_port in parent_ports.items():
             host_addr = parent_port.get('ip')
             if trunk_ips and host_addr not in trunk_ips:
+                continue
+
+            if node_ips and host_addr not in node_ips:
                 continue
 
             for subport in parent_port.get('subports'):
@@ -1194,6 +1204,36 @@ class NestedVIFPool(BaseVIFPool):
                 os_net.delete_port(port_id)
 
             self._available_ports_pools[pool_key] = {}
+
+    def _cleanup_leftover_ports(self):
+        subport_info = {}
+        os_net = clients.get_network_client()
+        existing_ports = os_net.ports(status='DOWN')
+
+        existing_trunks = os_net.trunks(attrs={'status': 'ACTIVE'})
+        for trunk in existing_trunks:
+            for sub_port in trunk.sub_ports:
+                subport_info[sub_port['port_id']] = {
+                    'trunk_id': trunk.id,
+                    'segmentation_id': sub_port['segmentation_id']
+                }
+
+        for port in existing_ports:
+            if not port.binding_host_id and subport_info.get(port.id)  \
+                    and port.device_owner in ['', 'trunk:subport', kl_const.DEVICE_OWNER]:
+                port_id = port.id
+                try:
+                    self._drv_vif._remove_subport(subport_info[port_id]['trunk_id'], port_id)
+                    self._drv_vif._release_vlan_id(
+                        subport_info[port_id]['segmentation_id'])
+                    os_net.delete_port(port_id)
+                    del self._existing_vifs[port_id]
+                except KeyError:
+                    LOG.debug('Port %s is not in the ports list. subPort info is %s', port_id, subport_info[port_id])
+                except (os_exc.SDKException, os_exc.HttpException):
+                    LOG.warning('Error removing the subport %s', port_id)
+                    continue
+                LOG.debug('Deleting leftover port %s, subPort info is %s', port_id, subport_info[port_id])
 
 
 class MultiVIFPool(base.VIFPoolDriver):

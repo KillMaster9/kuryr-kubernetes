@@ -50,7 +50,7 @@ def get_network_id(subnets):
 
 
 def get_port_name(pod):
-    return "%(namespace)s/%(name)s" % pod['metadata']
+    return "%(namespace)s_%(name)s" % pod['metadata']
 
 
 def get_device_id(pod):
@@ -758,3 +758,22 @@ def get_owner_references_name(resource):
         return owner['name']
 
     return None
+
+
+def get_cluster_node_ips():
+    nodes_path = constants.K8S_API_NODES
+    try:
+        nodes = get_k8s_resources(nodes_path)
+    except k_exc.K8sClientException:
+        LOG.exception("Exception during fetch Nodes. Retrying.")
+        raise k_exc.ResourceNotReady(nodes)
+
+    nodes_ip = []
+    for node in nodes:
+        for addr in node['status']['addresses']:
+            if addr['type'] == "InternalIP":
+                nodes_ip.append(addr['address'])
+
+    LOG.debug("Kubernetes Cluster nodes ip :[%s]", nodes_ip)
+
+    return nodes_ip
