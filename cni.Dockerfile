@@ -10,10 +10,10 @@ RUN cd ./coordinator \
     && go mod tidy \
     && GO111MODULE=auto go build -o /go/bin/coordinator .
 
-RUN curl -L --retry 5 https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-amd64-v1.1.1.tgz | tar -xz -C /go/bin/ ./loopback  ./portmap
-
 FROM quay.io/centos/centos:stream8
 LABEL authors="Antoni Segura Puimedon<toni@kuryr.org>, Michał Dulko<mdulko@redhat.com>"
+
+RUN curl -L --retry 5 https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-amd64-v1.1.1.tgz | tar -xz -C /go/bin/ ./loopback  ./portmap
 
 ARG UPPER_CONSTRAINTS_FILE="https://releases.openstack.org/constraints/upper/xena"
 ARG OSLO_LOCK_PATH=/var/kuryr-lock
