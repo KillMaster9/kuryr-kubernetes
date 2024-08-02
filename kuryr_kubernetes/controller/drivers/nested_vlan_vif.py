@@ -235,7 +235,7 @@ class NestedVlanPodVIFDriver(nested_vif.NestedPodVIFDriver):
         try:
             trunk_port = os_net.create_trunk(port_id=port_id,
                                              project_id="-1",
-                                             name=f"trunk-{port_id[:5]}",
+                                             name=f"trunk-{port_id[:10]}",
                                              admin_state_up=True)
         except os_exc.SDKException as e:
             LOG.error("Create Trunk port is Error. "

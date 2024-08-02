@@ -12,6 +12,10 @@ function deploy() {
     chmod +x /opt/cni/bin/kuryr-cni
     cp /coordinator "/opt/cni/bin/coordinator"
     chmod +x /opt/cni/bin/coordinator
+    cp /loopback  "/opt/cni/bin/loopback"
+    chmod +x /opt/cni/bin/loopback
+    cp /portmap  "/opt/cni/bin/portmap"
+    chmod +x /opt/cni/bin/portmap
     cat >> /etc/cni/net.d/10-kuryr.conflist << EOF
 {
   "name": "kuryr",

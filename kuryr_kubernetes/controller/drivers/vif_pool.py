@@ -45,13 +45,13 @@ vif_pool_driver_opts = [
     oslo_cfg.IntOpt('ports_pool_max',
                     help=_("Set a maximum amount of ports per pool. "
                            "0 to disable"),
-                    default=10),
+                    default=5),
     oslo_cfg.IntOpt('ports_pool_min',
                     help=_("Set a target minimum size of the pool of ports"),
                     default=5),
     oslo_cfg.IntOpt('ports_pool_batch',
                     help=_("Number of ports to be created in a bulk request"),
-                    default=10),
+                    default=5),
     oslo_cfg.IntOpt('ports_pool_update_frequency',
                     help=_("Minimum interval (in seconds) "
                            "between pool updates"),
@@ -1210,7 +1210,7 @@ class NestedVIFPool(BaseVIFPool):
         os_net = clients.get_network_client()
         existing_ports = os_net.ports(status='DOWN')
 
-        existing_trunks = os_net.trunks(attrs={'status': 'ACTIVE'})
+        existing_trunks = os_net.trunks(status='ACTIVE')
         for trunk in existing_trunks:
             for sub_port in trunk.sub_ports:
                 subport_info[sub_port['port_id']] = {
@@ -1219,7 +1219,8 @@ class NestedVIFPool(BaseVIFPool):
                 }
 
         for port in existing_ports:
-            if not port.binding_host_id and subport_info.get(port.id)  \
+            # 1. the port pool has leftover port
+            if not port.binding_host_id and subport_info.get(port.id) \
                     and port.device_owner in ['', 'trunk:subport', kl_const.DEVICE_OWNER]:
                 port_id = port.id
                 try:
@@ -1227,13 +1228,21 @@ class NestedVIFPool(BaseVIFPool):
                     self._drv_vif._release_vlan_id(
                         subport_info[port_id]['segmentation_id'])
                     os_net.delete_port(port_id)
-                    del self._existing_vifs[port_id]
+                    # del self._existing_vifs[port_id]
                 except KeyError:
                     LOG.debug('Port %s is not in the ports list. subPort info is %s', port_id, subport_info[port_id])
                 except (os_exc.SDKException, os_exc.HttpException):
                     LOG.warning('Error removing the subport %s', port_id)
                     continue
                 LOG.debug('Deleting leftover port %s, subPort info is %s', port_id, subport_info[port_id])
+
+            # 2. the trunkport is deleted, but the subport has leftoverd
+            elif not port.binding_host_id and port.name == constants.KURYR_PORT_NAME \
+                    and port.device_owner not in ['trunk:subport', kl_const.DEVICE_OWNER]:
+                try:
+                    os_net.delete_port(port.id)
+                except os_exc.SDKException:
+                    LOG.debug("Deleting leftover port %s. ", port.id)
 
 
 class MultiVIFPool(base.VIFPoolDriver):
