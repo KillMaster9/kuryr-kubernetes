@@ -134,6 +134,7 @@ class KuryrNetworkPolicyHandler(k8s_base.ResourceEventHandler):
         for sg_rule in to_add:
             LOG.debug('Adding SG rule %s for NP %s', sg_rule, uniq_name)
             sg_rule['security_group_id'] = sg_id
+            sg_rule['tenant_id'] = project_id
             sgr_id = driver_utils.create_security_group_rule(sg_rule)
             sg_rule['id'] = sgr_id
             knp = self._patch_kuryrnetworkpolicy_crd(

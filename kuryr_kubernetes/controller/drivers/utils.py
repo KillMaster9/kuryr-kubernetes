@@ -50,7 +50,7 @@ def get_network_id(subnets):
 
 
 def get_port_name(pod):
-    return "%(namespace)s_%(name)s" % pod['metadata']
+    return "k8s_%(namespace)s_%(name)s" % pod['metadata']
 
 
 def get_device_id(pod):
@@ -766,7 +766,7 @@ def get_cluster_node_ips():
         nodes = get_k8s_resources(nodes_path)
     except k_exc.K8sClientException:
         LOG.exception("Exception during fetch Nodes. Retrying.")
-        raise k_exc.ResourceNotReady(nodes)
+        raise k_exc.ResourceNotReady('node')
 
     nodes_ip = []
     for node in nodes:

@@ -1242,7 +1242,46 @@ class NestedVIFPool(BaseVIFPool):
                 try:
                     os_net.delete_port(port.id)
                 except os_exc.SDKException:
-                    LOG.debug("Deleting leftover port %s. ", port.id)
+                    LOG.debug("Problem Deleting leftover port %s. ", port.id)
+
+    def _cleanup_removed_nodes(self):
+        """Remove ports associated to removed nodes."""
+        previous_ports_to_remove = []
+        existing_trunks = []
+        os_net = clients.get_network_client()
+
+        while True:
+            # NOTE(ltomasbo): Nodes are not expected to be removed
+            # frequently, so there is no need to execute this frequently
+            # either
+            eventlet.sleep(NODE_PORTS_CLEAN_FREQUENCY)
+            LOG.debug("Periodic check of the trunk port and Subports. ")
+
+            # 1. Check the leftover subports resources
+            self._cleanup_leftover_ports()
+
+            # 2. Check the trunk port resource. when the trunk port status is Down or the subport length is zero
+            # we can delete it.
+            try:
+                existing_trunks = os_net.trunks()
+            except os_exc.SDKException:
+                LOG.debug("Problem Get the trunk port . ")
+
+            for trunk in existing_trunks:
+                if trunk.status == 'DOWN' or len(trunk.sub_ports) == 0:
+                    if trunk.id not in previous_ports_to_remove:
+                        previous_ports_to_remove.append(trunk.id)
+                        continue
+
+                    try:
+                        os_net.delete_trunk(trunk.id)
+                    except os_exc.SDKException:
+                        LOG.debug("Problem deleting trunk port %s. "
+                                  "Skipping. It will be retried in %s "
+                                  " seconds , NODE_PORTS_CLEAN_FREQUENCY", trunk.id)
+                    else:
+                        previous_ports_to_remove.remove(trunk.id)
+                        LOG.debug(f"Deleting trunkport {trunk.id} because it has no subports")
 
 
 class MultiVIFPool(base.VIFPoolDriver):
