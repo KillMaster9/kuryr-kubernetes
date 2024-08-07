@@ -16,6 +16,7 @@ rules:
       - services
       - services/status
       - namespaces
+      - events
   - apiGroups:
       - openstack.org
     verbs: ["*"]

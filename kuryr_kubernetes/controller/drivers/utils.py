@@ -15,6 +15,8 @@
 
 import urllib
 import uuid
+import time
+from datetime import datetime, timezone
 
 import netaddr
 from openstack import exceptions as os_exc
@@ -35,6 +37,7 @@ OPERATORS_WITH_VALUES = [constants.K8S_OPERATOR_IN,
 LOG = log.getLogger(__name__)
 
 CONF = cfg.CONF
+K8S_EVENT_URI = '/api/v1/namespaces/' + '{ns}/events'
 
 
 def get_network_id(subnets):
@@ -777,3 +780,44 @@ def get_cluster_node_ips():
     LOG.debug("Kubernetes Cluster nodes ip :[%s]", nodes_ip)
 
     return nodes_ip
+
+def add_pod_event(pod, reason, message):
+    LOG.debug('Adding Event %s', pod["metadata"]["name"])
+    unix_timestamp = str(int(time.time()))
+    #now_time = datetime.now(timezone.utc).isoformat()
+    event = {
+        'apiVersion': 'v1',
+        'kind': constants.K8S_OBJ_EVENT,
+        'metadata': {
+            'name': "{}.{}".format(pod['metadata']['name'], unix_timestamp),
+            'namespace': pod['metadata']['namespace']
+        },
+        #'lastTimestamp': now_time,
+        #'firstTimestamp': now_time,
+        'involvedObject': {
+            'apiVersion': 'v1',
+            'kind': constants.K8S_OBJ_POD,
+            'name': pod['metadata']['name'],
+            'namespace': pod['metadata']['namespace'],
+            'uid': pod['metadata']['uid'],
+            'resourceVersion': pod['metadata']['resourceVersion']
+        },
+        'message': message,
+        'reason': reason,
+        'type': 'Warning'
+    }
+
+    k8s = clients.get_kubernetes_client()
+    k8s.post(K8S_EVENT_URI.format(ns=pod["metadata"]["namespace"]), event)
+
+
+def is_subnet_enabled(pod, subnet_id):
+    os_net = clients.get_network_client()
+    try:
+        subnet_obj = os_net.get_subnet(subnet_id)
+    except os_exc.ResourceNotFound:
+        LOG.exception("Subnet %s CIDR not found!", subnet_id)
+        add_pod_event(pod,
+                      reason='CreatingNetworkFail',
+                      message='unabled to fetch subnet: fail to get subnet {}, subnet not found'.format(subnet_id))
+        raise

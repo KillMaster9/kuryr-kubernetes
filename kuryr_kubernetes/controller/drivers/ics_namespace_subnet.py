@@ -21,6 +21,7 @@ from kuryr_kubernetes.controller.drivers import default_subnet
 from kuryr_kubernetes import exceptions
 from kuryr_kubernetes import utils
 from kuryr_kubernetes import config
+from kuryr_kubernetes.controller.drivers import utils as d_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -32,14 +33,16 @@ class IcsNamespacePodSubnetDriver(default_subnet.DefaultPodSubnetDriver):
         pod_namespace = pod['metadata']['namespace']
         if not pod_namespace:
             pod_namespace = "default"
-        return self.get_namespace_subnet(pod_namespace)
+        return self.get_namespace_subnet(pod, pod_namespace)
 
-    def get_namespace_subnet(self, namespace, subnet_id=None):
+    def get_namespace_subnet(self, pod, namespace, subnet_id=None):
         subnet_map = {}
         if not subnet_id:
             result = self._get_namespace_subnet_id(namespace)
             subnet_ids = result.split(",")
             for subnet_id in subnet_ids:
+                # if the subnet is NotFound, create the event, and raise ResourceNotFound Error
+                d_utils.is_subnet_enabled(pod, subnet_id)
                 subnet_map[subnet_id.strip()] = utils.get_subnet(subnet_id.strip())
             return subnet_map
 
@@ -107,5 +110,4 @@ class IcsNamespaceServiceSubnetDriver(default_subnet.DefaultServiceSubnetDriver)
             if not pod_subnet:
                 raise cfg.RequiredOptError('service_subnet',
                                            cfg.OptGroup('neutron_defaults'))
-
         return service_subnet

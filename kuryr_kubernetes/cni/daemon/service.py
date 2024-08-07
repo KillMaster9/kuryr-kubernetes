@@ -100,7 +100,7 @@ class DaemonServer(object):
             vif = self.plugin.add(params)
             data = jsonutils.dumps(vif.obj_to_primitive())
         except exceptions.ResourceNotReady as e:
-            self._check_failure()
+            #self._check_failure()
             LOG.error('Error when processing addNetwork request')
             error = self._error(ErrTryAgainLater,
                                 f"{e}. Try Again Later.")

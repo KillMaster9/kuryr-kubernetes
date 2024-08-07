@@ -43,6 +43,7 @@ K8S_OBJ_KURYRNETPOLICY = 'KuryrNetPolicy'
 K8S_OBJ_KURYRNETWORKPOLICY = 'KuryrNetworkPolicy'
 K8S_OBJ_KURYRLOADBALANCER = 'KuryrLoadBalancer'
 K8S_OBJ_KURYRPORT = 'KuryrPort'
+K8S_OBJ_EVENT = 'Event'
 
 OPENSHIFT_OBJ_MACHINE = 'Machine'
 OPENSHIFT_API_CRD_MACHINES = '/apis/machine.openshift.io/v1beta1/machines'
