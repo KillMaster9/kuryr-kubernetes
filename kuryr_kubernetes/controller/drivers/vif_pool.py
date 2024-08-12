@@ -18,6 +18,7 @@ import collections
 import eventlet
 import os
 import time
+import threading
 
 from kuryr.lib._i18n import _
 from kuryr.lib import constants as kl_const
@@ -56,7 +57,7 @@ vif_pool_driver_opts = [
     oslo_cfg.IntOpt('ports_pool_update_frequency',
                     help=_("Minimum interval (in seconds) "
                            "between pool updates"),
-                    default=20),
+                    default=10),
     oslo_cfg.DictOpt('pools_vif_drivers',
                      help=_("Dict with the pool driver and pod driver to be "
                             "used. If not set, it will take them from the "
@@ -106,6 +107,7 @@ VIF_TYPE_TO_DRIVER_MAPPING = {
 }
 
 NODE_PORTS_CLEAN_FREQUENCY = 600  # seconds
+POPULATE_POOL_TIMEOUT = 420  # seconds
 
 
 class NoopVIFPool(base.VIFPoolDriver):
@@ -198,6 +200,10 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
     def _get_pool_key_net(self, pool_key):
         return pool_key[2]
 
+    def _get_populate_pool_lock(self, pool_key):
+        with self._lock:
+            return self._populate_pool_lock[pool_key]
+
     def request_vif(self, pod, project_id, subnets, security_groups):
         if not self._recovered_pools:
             LOG.debug("Kuryr-controller not yet ready to handle new pods.")
@@ -221,13 +227,62 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
             # NOTE(dulek): We're passing raise_not_ready=False because this
             #              will be run outside of handlers thread, so raising
             #              it will only result in an ugly log from eventlet.
-            eventlet.spawn(self._populate_pool, pool_key, pod, subnets,
-                           tuple_sg,
-                           raise_not_ready=False)
+            if eventlet.spawn(self._populate_pool, pool_key, pod, subnets,
+                              tuple_sg,
+                              raise_not_ready=False):
+                return self._get_port_from_pool(pool_key, pod, subnets,
+                                                tuple_sg)
             raise
 
     def _get_port_from_pool(self, pool_key, pod, subnets, security_groups):
         raise NotImplementedError()
+
+    def _populate_pool_v1(self, pool_key, pod, subnets, security_groups):
+        # REVISIT(ltomasbo): Drop the subnets parameter and get the information
+        # from the pool_key, which will be required when multi-network is
+        # supported
+        kubernetes = clients.get_kubernetes_client()
+
+        if not self._recovered_pools:
+            LOG.debug("Kuryr-controller not yet ready to populate pools.")
+            return False
+        ports_pool_min = oslo_cfg.CONF.vif_pool.ports_pool_min
+        lock = self._get_populate_pool_lock(pool_key)
+        # NOTE(maysams): Only allow one request vifs per pool and times out
+        # if takes 420 sec.
+        if lock.acquire(timeout=POPULATE_POOL_TIMEOUT):
+            pool_size = self._get_pool_size(pool_key)
+            try:
+                if pool_size < ports_pool_min:
+                    num_ports = max(oslo_cfg.CONF.vif_pool.ports_pool_batch,
+                                    ports_pool_min - pool_size)
+                    try:
+                        vifs = self._drv_vif.request_vifs(
+                            pod=pod,
+                            project_id=pool_key[1],
+                            subnets=subnets,
+                            security_groups=security_groups,
+                            num_ports=num_ports)
+                    except os_exc.SDKException as exc:
+                        kubernetes.add_event(
+                            pod, 'FailToPopulateVIFPool',
+                            f'There was an error during populating VIF pool '
+                            f'for pod: {exc.message}', type_='Warning')
+                        raise
+
+                    for vif in vifs:
+                        self._existing_vifs[vif.id] = vif
+                        self._available_ports_pools[pool_key].setdefault(
+                            security_groups, []).append(vif.id)
+                    if vifs:
+                        # Mark it as updated most recently.
+                        self._available_ports_pools[pool_key].move_to_end(
+                            security_groups)
+            finally:
+                lock.release()
+        else:
+            return False
+        return True
 
     def _populate_pool(self, pool_key, pod, subnets, security_groups,
                        raise_not_ready=True):
@@ -239,7 +294,10 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
             if raise_not_ready:
                 raise exceptions.ResourceNotReady(pod)
             else:
-                return
+                return False
+
+        kubernetes = clients.get_kubernetes_client()
+
         now = time.time()
         last_update = 0
         pool_updates = self._last_update.get(pool_key)
@@ -249,22 +307,30 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
                 if (now - oslo_cfg.CONF.vif_pool.ports_pool_update_frequency <
                         last_update):
                     LOG.debug("Not enough time since the last pool update")
-                    return
+                    return False
             except AttributeError:
                 LOG.debug("Kuryr-controller not yet ready to populate pools.")
-                return
+                return False
         self._last_update[pool_key] = {security_groups: now}
 
         pool_size = self._get_pool_size(pool_key)
         if pool_size < oslo_cfg.CONF.vif_pool.ports_pool_min:
             num_ports = max(oslo_cfg.CONF.vif_pool.ports_pool_batch,
                             oslo_cfg.CONF.vif_pool.ports_pool_min - pool_size)
-            vifs = self._drv_vif.request_vifs(
-                pod=pod,
-                project_id=pool_key[1],
-                subnets=subnets,
-                security_groups=security_groups,
-                num_ports=num_ports)
+            try:
+                vifs = self._drv_vif.request_vifs(
+                    pod=pod,
+                    project_id=pool_key[1],
+                    subnets=subnets,
+                    security_groups=security_groups,
+                    num_ports=num_ports)
+            except os_exc.SDKException as exc:
+                kubernetes.add_event(
+                    pod, 'FailToPopulateVIFPool',
+                    f'There was an error during populating VIF pool '
+                    f'for pod: {exc.message}', type_='Warning')
+                raise
+
             for vif in vifs:
                 self._existing_vifs[vif.id] = vif
                 self._available_ports_pools.setdefault(
@@ -272,6 +338,9 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
                     security_groups, []).append(vif.id)
             if not vifs:
                 self._last_update[pool_key] = {security_groups: last_update}
+                return False
+
+            return True
 
     def release_vif(self, pod, vif, project_id, security_groups,
                     host_addr=None):
@@ -281,9 +350,14 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
         if not host_addr:
             host_addr = self._get_host_addr(pod)
 
-        subnets = ns_subnet_drv.IcsNamespacePodSubnetDriver.get_subnets(pod, project_id)
-        pool_key = self._get_pool_key(host_addr, project_id, None,
-                                      subnets)
+        try:
+            subnets = ns_subnet_drv.IcsNamespacePodSubnetDriver().get_subnets(pod, project_id)
+            pool_key = self._get_pool_key(host_addr, project_id, None,
+                                          subnets)
+        except os_exc.SDKException:
+            pool_key = self._get_pool_key(host_addr, project_id, vif.network.id,
+                                          None)
+
         try:
             if not self._existing_vifs.get(vif.id):
                 self._existing_vifs[vif.id] = vif
@@ -372,6 +446,8 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
         self._existing_vifs = collections.defaultdict()
         self._recyclable_ports = collections.defaultdict()
         self._last_update = collections.defaultdict()
+        self._lock = threading.Lock()
+        self._populate_pool_lock = collections.defaultdict(threading.Lock)
 
     def _get_trunks_info(self):
         """Returns information about trunks and their subports.
@@ -908,15 +984,20 @@ class NestedVIFPool(BaseVIFPool):
 
             try:
                 if not security_groups:
-                    os_net.update_port(port_id, security_groups=None)
+                    os_net.update_port(port_id,
+                                       security_groups=None,
+                                       name=c_utils.get_port_name(pod),
+                                       device_id=pod['metadata']['uid'])
                 else:
                     os_net.update_port(port_id,
                                        security_groups=list(security_groups),
-                                       port_security_enabled=True)
+                                       port_security_enabled=True,
+                                       name=c_utils.get_port_name(pod),
+                                       device_id=pod['metadata']['uid'])
             except os_exc.BadRequestException:
                 raise
 
-        if config.CONF.kubernetes.port_debug:
+        if config.CONF.kubernetes.port_debug and False:
             os_net.update_port(port_id,
                                name=c_utils.get_port_name(pod),
                                device_id=pod['metadata']['uid'])

@@ -749,8 +749,11 @@ def get_namespace_subnet_cidr(namespace):
     if subnet:
         subnet_ids = subnet.split(",")
         for subnet_id in subnet_ids:
-            st = os_net.get_subnet(subnet_id)
-            namespaces_cidrs.append(st.cidr)
+            try:
+                st = os_net.get_subnet(subnet_id)
+                namespaces_cidrs.append(st.cidr)
+            except os_exc.SDKException:
+                continue
 
     return namespaces_cidrs
 

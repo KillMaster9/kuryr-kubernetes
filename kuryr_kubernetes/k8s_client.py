@@ -20,6 +20,7 @@ import ssl
 import time
 from urllib import parse
 import urllib3
+import datetime
 
 from oslo_log import log as logging
 from oslo_serialization import jsonutils
@@ -445,3 +446,65 @@ class K8sClient(object):
                     params.get('resourceVersion'))
                 time.sleep(t)
                 attempt += 1
+
+    def add_event(self, resource, reason, message, type_='Normal',
+                  component='kuryr-controller'):
+        """Create an Event object for the provided resource."""
+        if not resource:
+            return {}
+
+        involved_object = {'apiVersion': resource['apiVersion'],
+                           'kind': resource['kind'],
+                           'name': resource['metadata']['name'],
+                           'namespace': resource['metadata']['namespace'],
+                           'uid': resource['metadata']['uid']}
+
+        # This is needed for Event date, otherwise LAST SEEN/Age will be empty
+        # and misleading.
+        now = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc)
+        date_time = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        name = ".".join((resource['metadata']['name'],
+                         self._get_hex_timestamp(now)))
+
+        event = {'kind': 'Event',
+                 'apiVersion': 'v1',
+                 'firstTimestamp': date_time,
+                 'metadata': {'name': name},
+                 'reason': reason,
+                 'message': message,
+                 'type': type_,
+                 'involvedObject': involved_object,
+                 'source': {'component': component,
+                            'host': utils.get_nodename()}}
+
+        try:
+            return self.post(f'{constants.K8S_API_BASE}/namespaces/'
+                             f'{resource["metadata"]["namespace"]}/events',
+                             event)
+        except exc.K8sNamespaceTerminating:
+            # We can't create events in a Namespace that is being terminated,
+            # there's no workaround, no need to log it, just ignore it.
+            return {}
+        except exc.K8sClientException:
+            LOG.warning(f'There was non critical error during creating an '
+                        'Event for resource: "{resource}", with reason: '
+                        f'"{reason}", message: "{message}" and type: '
+                        f'"{type_}"')
+            return {}
+
+    def _get_hex_timestamp(self, datetimeobj):
+        """Get hex representation for timestamp.
+
+        In Kuberenets, Event name is constructed name of the bounded object
+        and timestamp in hexadecimal representation.
+        Note, that Python timestamp is represented as floating figure:
+          1631622163.8534190654754638671875
+        while those which origin from K8s, after change to int:
+          1631622163915909162
+        so, to get similar integer, we need to multiply the float by
+        100000000 to get the same precision and cast to integer, to get rid
+        of the fractures, and finally convert it to hex representation.
+        """
+        timestamp = datetime.datetime.timestamp(datetimeobj)
+        return format(int(timestamp * 100000000), 'x')

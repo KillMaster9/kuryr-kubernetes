@@ -15,6 +15,7 @@ import random
 import re
 import socket
 import time
+import os
 
 import requests
 
@@ -673,3 +674,13 @@ def is_headless_service(obj):
         return True
 
     return False
+
+def get_nodename():
+    # NOTE(dulek): At first try to get it using environment variable,
+    #              otherwise assume hostname is the nodename.
+    try:
+        nodename = os.environ['KUBERNETES_NODE_NAME']
+    except KeyError:
+        # NOTE(dulek): By default K8s nodeName is lowercased hostname.
+        nodename = socket.gethostname().lower()
+    return nodename
