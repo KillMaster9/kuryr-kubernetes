@@ -22,6 +22,7 @@ from kuryr_kubernetes import clients
 from openstack import exceptions as os_exc
 from os_vif.objects import fixed_ip as osv_fixed_ip
 from kuryr_kubernetes import exceptions
+from kuryr_kubernetes.controller.drivers import utils as d_utils
 
 LOG = log.getLogger(__name__)
 
@@ -83,6 +84,10 @@ def acquire_pod_address(pod, networks):
                 networks = populate_networks_fixed_ips(ipv4, ipv6, networks)
                 return networks
 
+    d_utils.add_pod_event(pod,
+                          reason='CreatingNetworkFail',
+                          message='unabled to fetch static-ip: pod has no available IP addresses in '
+                                  '{} or ip pool {}.'.format(pod_ip_address, pod_ip_pool))
     raise exceptions.ResourceNotReady(pod)
 
 

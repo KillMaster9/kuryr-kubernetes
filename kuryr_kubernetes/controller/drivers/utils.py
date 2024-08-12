@@ -781,10 +781,11 @@ def get_cluster_node_ips():
 
     return nodes_ip
 
+
 def add_pod_event(pod, reason, message):
     LOG.debug('Adding Event %s', pod["metadata"]["name"])
     unix_timestamp = str(int(time.time()))
-    #now_time = datetime.now(timezone.utc).isoformat()
+    now_time = datetime.now(timezone.utc).isoformat()
     event = {
         'apiVersion': 'v1',
         'kind': constants.K8S_OBJ_EVENT,
@@ -792,8 +793,7 @@ def add_pod_event(pod, reason, message):
             'name': "{}.{}".format(pod['metadata']['name'], unix_timestamp),
             'namespace': pod['metadata']['namespace']
         },
-        #'lastTimestamp': now_time,
-        #'firstTimestamp': now_time,
+
         'involvedObject': {
             'apiVersion': 'v1',
             'kind': constants.K8S_OBJ_POD,
@@ -802,6 +802,12 @@ def add_pod_event(pod, reason, message):
             'uid': pod['metadata']['uid'],
             'resourceVersion': pod['metadata']['resourceVersion']
         },
+
+        'source': {
+            'component': 'iveth-controller'
+        },
+        'lastTimestamp': now_time,
+        'firstTimestamp': now_time,
         'message': message,
         'reason': reason,
         'type': 'Warning'

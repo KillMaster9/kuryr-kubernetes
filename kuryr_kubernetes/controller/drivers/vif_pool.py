@@ -37,6 +37,7 @@ from kuryr_kubernetes.controller.managers import pool
 from kuryr_kubernetes import exceptions
 from kuryr_kubernetes import os_vif_util as ovu
 from kuryr_kubernetes import utils
+from kuryr_kubernetes.controller.drivers import ics_namespace_subnet as ns_subnet_drv
 
 LOG = logging.getLogger(__name__)
 
@@ -280,9 +281,9 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
         if not host_addr:
             host_addr = self._get_host_addr(pod)
 
-        pool_key = self._get_pool_key(host_addr, project_id, vif.network.id,
-                                      None)
-
+        subnets = ns_subnet_drv.IcsNamespacePodSubnetDriver.get_subnets(pod, project_id)
+        pool_key = self._get_pool_key(host_addr, project_id, None,
+                                      subnets)
         try:
             if not self._existing_vifs.get(vif.id):
                 self._existing_vifs[vif.id] = vif
@@ -905,10 +906,15 @@ class NestedVIFPool(BaseVIFPool):
                     raise exceptions.ResourceNotReady(pod)
                 port_id = pool_ports[min_sg_group].pop()
 
-            if not security_groups:
-                os_net.update_port(port_id, security_groups=None)
-            else:
-                os_net.update_port(port_id, security_groups=list(security_groups))
+            try:
+                if not security_groups:
+                    os_net.update_port(port_id, security_groups=None)
+                else:
+                    os_net.update_port(port_id,
+                                       security_groups=list(security_groups),
+                                       port_security_enabled=True)
+            except os_exc.BadRequestException:
+                raise
 
         if config.CONF.kubernetes.port_debug:
             os_net.update_port(port_id,
@@ -977,7 +983,9 @@ class NestedVIFPool(BaseVIFPool):
                              else '')
                 if config.CONF.kubernetes.port_debug:
                     try:
-                        os_net.update_port(port_id, name=port_name)
+                        os_net.update_port(port_id,
+                                           device_id='',
+                                           name=port_name)
                     except os_exc.SDKException:
                         LOG.warning("Error changing name for port %s to be "
                                     "reused, put back on the cleanable "

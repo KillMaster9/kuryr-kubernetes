@@ -183,8 +183,10 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
 
         for data in kuryrport_crd['status']['vifs'].values():
             vif = objects.base.VersionedObject.obj_from_primitive(data['vif'])
-
-            self.os_net.update_port(vif.id, qos_policy_id=None)
+            try:
+                self.os_net.update_port(vif.id, qos_policy_id=None)
+            except os_exc.SDKException:
+                continue
 
             if static_ip.is_static_ip_pod(pod) and data['default']:
                 self._drv_vif.release_vif(pod, vif,
