@@ -224,11 +224,14 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
 
         project_id = self._drv_project.get_project(pod)
         security_groups = self._drv_sg.get_security_groups(pod, project_id)
-        owner_name = driver_utils.get_owner_references_name(pod)
-        if owner_name is None:
-            owner_name = pod['metadata']['name']
-        with lockutils.lock(owner_name):
-            qos_policy = self._drv_qos_policy.get_qos_policy(pod, project_id)
+
+        qos_policy = None
+        if self._drv_qos_policy.is_qos_policy_enabled(pod):
+            owner_name = driver_utils.get_owner_references_name(pod)
+            if owner_name is None:
+                owner_name = pod['metadata']['name']
+            with lockutils.lock(owner_name):
+                qos_policy = self._drv_qos_policy.get_qos_policy(pod, project_id)
 
         try:
             subnets = self._drv_subnets.get_subnets(pod, project_id)
@@ -258,7 +261,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
                 main_vif = self._drv_vif_pool.request_vif(pod, project_id,
                                                           subnets,
                                                           security_groups)
-        except os_exc.ResourceNotFound:
+        except (os_exc.ResourceNotFound, k_exc.ResourceNotReady):
             # NOTE(gryf): It might happen, that between getting security
             # groups above and requesting VIF, network policy is deleted,
             # hence we will get 404 from OpenStackSDK. Let's retry, to refresh
@@ -277,9 +280,17 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
             qos_policy_id = qos_policy.id
         else:
             qos_policy_id = None
-
-        self.os_net.update_port(main_vif.id, qos_policy_id=qos_policy_id)
+        port = self.os_net.update_port(main_vif.id,
+                                       qos_policy_id=qos_policy_id)
         LOG.debug("update port %s, qos_policy_id is %s", main_vif.id, qos_policy_id)
+
+        tag = None
+        try:
+            tag = driver_utils.get_port_tag(pod)
+            self.os_net.set_tags(port, tags=tag)
+        except os_exc.SDKException:
+            LOG.warning("Failed to tag %s with %s. Ignoring, but this is "
+                        "still unexpected.", pod, tag, exc_info=True)
 
         vifs = {constants.DEFAULT_IFNAME: {'default': True, 'vif': main_vif}}
 

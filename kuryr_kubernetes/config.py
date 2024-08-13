@@ -123,7 +123,7 @@ k8s_opts = [
     cfg.StrOpt('pod_security_groups_driver',
                help=_("The driver to determine Neutron "
                       "security groups for pods"),
-               default='policy'),
+               default='default'),
     cfg.StrOpt('service_security_groups_driver',
                help=_("The driver to determine Neutron "
                       "security groups for services"),

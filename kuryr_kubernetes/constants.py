@@ -127,6 +127,7 @@ K8S_OPERATOR_EXISTS = 'exists'
 K8S_TAG_PREFIX = 'k8s'
 K8s_ANNOTATION_POD_RUNTIME_ID = ICR_K8S_ANNOTATION_PREFIX + 'runtime-id'
 K8s_ANNOTATION_PROJECT = ICR_K8S_ANNOTATION_PREFIX + 'vdc-id'
+K8S_SYSTEM_NAMESPACE = ['kube-system', 'node-feature-discovery', 'ingress-nginx']
 
 K8s_ANNOTATION_POD_SUBNET = 'cni.iveth.inspur.org/pod-subnet'
 K8S_ANNOTATION_IP_ADDRESS = 'cni.iveth.inspur.org/ip_address'

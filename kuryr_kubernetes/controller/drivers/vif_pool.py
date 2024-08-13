@@ -779,8 +779,9 @@ class NeutronVIFPool(BaseVIFPool):
                              else '')
                 if config.CONF.kubernetes.port_debug:
                     try:
-                        os_net.update_port(port_id, name=port_name,
-                                           device_id='')
+                        port = os_net.update_port(port_id, name=port_name,
+                                                  device_id='')
+                        os_net.set_tags(port, tags=None)
                     except os_exc.SDKException:
                         LOG.warning("Error changing name for port %s to be "
                                     "reused, put back on the cleanable "
@@ -985,19 +986,15 @@ class NestedVIFPool(BaseVIFPool):
             try:
                 if not security_groups:
                     os_net.update_port(port_id,
-                                       security_groups=None,
-                                       name=c_utils.get_port_name(pod),
-                                       device_id=pod['metadata']['uid'])
+                                       security_groups=None)
                 else:
                     os_net.update_port(port_id,
                                        security_groups=list(security_groups),
-                                       port_security_enabled=True,
-                                       name=c_utils.get_port_name(pod),
-                                       device_id=pod['metadata']['uid'])
+                                       port_security_enabled=True)
             except os_exc.BadRequestException:
                 raise
 
-        if config.CONF.kubernetes.port_debug and False:
+        if config.CONF.kubernetes.port_debug:
             os_net.update_port(port_id,
                                name=c_utils.get_port_name(pod),
                                device_id=pod['metadata']['uid'])
@@ -1317,7 +1314,7 @@ class NestedVIFPool(BaseVIFPool):
                     self._drv_vif._release_vlan_id(
                         subport_info[port_id]['segmentation_id'])
                     os_net.delete_port(port_id)
-                    # del self._existing_vifs[port_id]
+                    del self._existing_vifs[port_id]
                 except KeyError:
                     LOG.debug('Port %s is not in the ports list. subPort info is %s', port_id, subport_info[port_id])
                 except (os_exc.SDKException, os_exc.HttpException):

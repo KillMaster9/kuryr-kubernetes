@@ -704,14 +704,37 @@ def get_port_tag(pod):
     namespace = get_namespace(ns_name)
     if namespace is None:
         LOG.warning("Namespace not found %s", ns_name)
-        return "%s_%s_%s" % (constants.K8S_TAG_PREFIX, ns_name, pod_name)
+        return None
+
+    if namespace in constants.K8S_SYSTEM_NAMESPACE:
+        return None
 
     runtime_id = namespace['metadata'].get('annotations', {}).get(constants.K8s_ANNOTATION_POD_RUNTIME_ID)
     if not runtime_id:
-        LOG.warning("Runtime_id not found %s-%s", ns_name, pod_name)
-        return "%s_%s_%s" % (constants.K8S_TAG_PREFIX, ns_name, pod_name)
+        # if can not find runtime-id from namspace annotation, we need to find in configmap
+        LOG.warning("Runtime_id not found %s-%s, find in kube-system/icks-cluster-info configMap resource agin ",
+                    ns_name, pod_name)
+        runtime_id = get_ickster_configmap('kube-system', 'icks-cluster-info')
+        if runtime_id is None:
+            return None
 
-    return "%s_%s_%s_%s" % (constants.K8S_TAG_PREFIX, runtime_id, ns_name, pod_name)
+    return [runtime_id, ns_name, pod_name]
+    # return "%s_%s_%s_%s" % (constants.K8S_TAG_PREFIX, runtime_id, ns_name, pod_name)
+
+
+def get_ickster_configmap(namespace, name):
+    url = constants.K8S_API_NAMESPACES + '/{}/configmaps/{}'.format(namespace, name)
+    configmap = get_k8s_resource(url)
+
+    if configmap is None:
+        return None
+
+    data = configmap['data']
+    LOG.debug("Get kube-system/icks-cluster-info configMap resources, ConfigMap data %s", data)
+    if 'clusterId' in data:
+        return data['clusterId']
+    else:
+        return None
 
 
 def get_default_security_groups(project_id):

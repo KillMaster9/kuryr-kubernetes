@@ -212,3 +212,13 @@ class QosPolicyDriver(base.QosPolicyDriver):
         egress_rate = metadata.get("annotations", {}).get(constants.K8S_ANNOTATION_EGRESS_RATE)
 
         return ingress_rate, egress_rate
+
+    def is_qos_policy_enabled(self, pod):
+        metadata = pod['metadata']
+        ingress_rate = metadata.get("annotations", {}).get(constants.K8S_ANNOTATION_INGRESS_RATE)
+        egress_rate = metadata.get("annotations", {}).get(constants.K8S_ANNOTATION_EGRESS_RATE)
+
+        if ingress_rate is None and egress_rate is None:
+            return False
+
+        return True
