@@ -116,6 +116,12 @@ cni:
     successThreshold: 1
     timeoutSeconds: 10
 
+cloudRouteManager:
+  enabled: true
+  image:
+    repository:
+    tag:
+    pullPolicy:
 # kuryr-config. It is a ini config file.
 config:
   # The kuryr-controller log level,bool, default is debug = true.

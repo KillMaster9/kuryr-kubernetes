@@ -695,6 +695,7 @@ def is_network_policy_enabled():
 
 
 def get_port_tag(pod):
+    is_not_system = "enable"
     # get pod namespace and podName
     pod_name = pod['metadata']['name']
     ns_name = pod['metadata']['namespace']
@@ -706,20 +707,24 @@ def get_port_tag(pod):
         LOG.warning("Namespace not found %s", ns_name)
         return None
 
-    if namespace in constants.K8S_SYSTEM_NAMESPACE:
+    data = get_ickster_configmap('kube-system', 'icks-cluster-info')
+    if data is None:
         return None
+
+    system_namespace = data['system-namespace']
+    if namespace in system_namespace.split(','):
+        is_not_system = "disable"
 
     runtime_id = namespace['metadata'].get('annotations', {}).get(constants.K8s_ANNOTATION_POD_RUNTIME_ID)
     if not runtime_id:
         # if can not find runtime-id from namspace annotation, we need to find in configmap
         LOG.warning("Runtime_id not found %s-%s, find in kube-system/icks-cluster-info configMap resource agin ",
                     ns_name, pod_name)
-        runtime_id = get_ickster_configmap('kube-system', 'icks-cluster-info')
+        runtime_id = data['clusterId']
         if runtime_id is None:
             return None
 
-    return [runtime_id, ns_name, pod_name]
-    # return "%s_%s_%s_%s" % (constants.K8S_TAG_PREFIX, runtime_id, ns_name, pod_name)
+    return [is_not_system, runtime_id, ns_name, pod_name]
 
 
 def get_ickster_configmap(namespace, name):
@@ -731,10 +736,8 @@ def get_ickster_configmap(namespace, name):
 
     data = configmap['data']
     LOG.debug("Get kube-system/icks-cluster-info configMap resources, ConfigMap data %s", data)
-    if 'clusterId' in data:
-        return data['clusterId']
-    else:
-        return None
+
+    return data
 
 
 def get_default_security_groups(project_id):

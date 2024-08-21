@@ -25,7 +25,6 @@ spec:
       serviceAccountName: {{ template "kuryr.cni.serviceAccountName" . }}
       hostNetwork: true
       terminationGracePeriodSeconds: 0
-      hostNetwork: true
       containers:
         - name: {{ .Chart.Name }}-cni
           image: {{ .Values.cni.image.repository }}:{{ .Values.cni.image.tag | default .Chart.AppVersion }}
@@ -85,6 +84,25 @@ spec:
           resources:
           {{- toYaml . | nindent 12 }}
         {{- end }}
+        {{- if .Values.cloudRouteManager.enabled}}}
+        - name: cloud-route-manager
+          image: {{ .Values.cloudRouteManager.image.repository }}:{{ .Values.cloudRouteManager.image.tag | default .Chart.AppVersion }}
+         {{- if .Values.cloudRouteManager.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.cloudRouteManager.image.pullPolicy }}
+         {{- end }}
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          volumeMounts:
+            - mountPath: /etc/10-kuryr.conflist
+              name: cni-config
+        {{- end}}
       nodeSelector:
         "kubernetes.io/os": linux
         {{- with .Values.cni.nodeSelector }}
@@ -120,4 +138,8 @@ spec:
         - name: var-pci
           hostPath:
             path: /var/pci_address
+        - name: cni-config
+          hostPath:
+            path: /etc/cni/net.d/10-kuryr.conflist
+            type: File
 {{- end }}
