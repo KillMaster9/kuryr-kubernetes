@@ -52,7 +52,7 @@ RUN cd /opt/kuryr-kubernetes/keystone/keystoneauth \
     && python3 setup.py install \
     && rm -rf /opt/kuryr-kubernetes 
 
-COPY --from=builder /go/bin/kuryr-cni /kuryr-cni
+COPY --from=builder /go/bin/kuryr-cni /iveth-cni
 COPY --from=builder /go/bin/coordinator /coordinator
 
 ARG CNI_DAEMON=True

@@ -84,7 +84,7 @@ Create the name of the settings ConfigMap to use.
 Create the k8s_api_root of the settings ConfigMap to use.
 */}}
 {{- define "kuryr.configMap.k8sApiRoot" -}}
-{{- default "127.0.0.1:6443" .Values.config.kubernetes.k8sApiRoot }}
+{{- default "" .Values.config.kubernetes.k8sApiRoot }}
 {{- end -}}
 
 {{/*

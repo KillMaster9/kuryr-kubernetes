@@ -77,7 +77,7 @@ spec:
             name: {{ include "kuryr.configMapName" . }}-config
         - name: certificates-volume
           secret:
-            secretName: {{ include "kuryr.name" . }}-certificates
+            secretName: {{ include "kuryr.fullname" . }}-certificates
       {{- with .Values.controller.volumes }}
         {{- toYaml . | nindent 8 }}
       {{- end }}

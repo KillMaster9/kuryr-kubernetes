@@ -100,7 +100,7 @@ spec:
             runAsUser: 0
             privileged: true
           volumeMounts:
-            - mountPath: /etc/10-kuryr.conflist
+            - mountPath: /etc
               name: cni-config
         {{- end}}
       nodeSelector:
@@ -113,12 +113,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       tolerations:
-      - key: node-role.kubernetes.io/master
-        operator: Exists
-        effect: NoSchedule
-      - key: "node.kubernetes.io/not-ready"
-        operator: "Exists"
-        effect: "NoSchedule"
+      - operator: Exists
       {{- with .Values.cni.tolerations }}
         {{- toYaml . | nindent 6 }}
       {{- end }}
@@ -140,6 +135,5 @@ spec:
             path: /var/pci_address
         - name: cni-config
           hostPath:
-            path: /etc/cni/net.d/10-kuryr.conflist
-            type: File
+            path: /etc/cni/net.d
 {{- end }}

@@ -2,27 +2,27 @@
 
 function cleanup() {
     rm -f "/etc/cni/net.d/10-kuryr.conflist"
-    rm -f "/opt/cni/bin/kuryr-cni"
+    rm -f "/opt/cni/bin/iveth-cni"
     rm -f "/opt/cni/bin/coordinator"
 }
 
 function deploy() {
     # Copy the binary into the designated location
-    cp /kuryr-cni "/opt/cni/bin/kuryr-cni"
-    chmod +x /opt/cni/bin/kuryr-cni
+    cp /iveth-cni "/opt/cni/bin/kuryr-cni"
+    chmod +x /opt/cni/bin/iveth-cni
     cp /coordinator "/opt/cni/bin/coordinator"
     chmod +x /opt/cni/bin/coordinator
     cp /loopback  "/opt/cni/bin/loopback"
     chmod +x /opt/cni/bin/loopback
     cp /portmap  "/opt/cni/bin/portmap"
     chmod +x /opt/cni/bin/portmap
-    cat >> /etc/cni/net.d/10-kuryr.conflist << EOF
+    cat >> /etc/cni/net.d/10-iveth.conflist << EOF
 {
-  "name": "kuryr",
+  "name": "iveth",
   "cniVersion": "0.3.1",
   "plugins": [
     {
-      "type": "kuryr-cni",
+      "type": "iveth-cni",
       "kuryr_conf": "/etc/kuryr/kuryr.conf",
       "debug": true
     },{

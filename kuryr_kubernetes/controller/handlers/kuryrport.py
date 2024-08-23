@@ -287,7 +287,8 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
         tag = None
         try:
             tag = driver_utils.get_port_tag(pod)
-            self.os_net.set_tags(port, tags=tag)
+            if tag is not None:
+                self.os_net.set_tags(port, tags=tag)
         except os_exc.SDKException:
             LOG.warning("Failed to tag %s with %s. Ignoring, but this is "
                         "still unexpected.", pod, tag, exc_info=True)

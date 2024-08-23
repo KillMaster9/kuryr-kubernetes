@@ -7,15 +7,15 @@ metadata:
     {{- include "kuryr.labels" . | nindent 4 }}
 data:
   kuryr.conf: |
-    [ DEFAULT ]
+    [DEFAULT]
     debug = {{ template "kuryr.configMap.debug" .}}
 
-    [ kubernetes ]
+    [kubernetes]
     api_root = {{ template "kuryr.configMap.k8sApiRoot" .}}
     token_file = /var/run/secrets/kubernetes.io/serviceaccount/token
     ssl_ca_crt_file = /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
-    [ neutron ]
+    [neutron]
     signing_dir = /var/cache/kuryr
     username = {{ template "kuryr.configMap.userName" .}}
     password = {{ template "kuryr.configMap.password" .}}
@@ -27,30 +27,30 @@ data:
     network_api_version = {{ template "kuryr.configMap.networkApiVersion" .}}
     network_endpoint = {{ .Values.config.neutron.networkEndpoint}}
 
-    [ neutron_defaults ]
+    [neutron_defaults]
     ovs_bridge = br-int
     service_subnet = {{.Values.config.neutronDefaults.serviceSubnet}}
     pod_security_groups = {{.Values.config.neutronDefaults.podSecurityGroups}}
     pod_subnet = {{.Values.config.neutronDefaults.podSubnetId}}
     project = {{.Values.config.neutronDefaults.project}}
 
-    [ namespace_subnet ]
+    [namespace_subnet]
     pod_subnet_pool =
 
-    [ cni_daemon ]
+    [cni_daemon]
     docker_mode = true
     netns_proc_dir = /host_proc
 
-    [ vif_plug_ovs_privileged ]
+    [vif_plug_ovs_privileged]
     helper_command= privsep-helper
 
-    [ vif_plug_linux_bridge_privileged ]
+    [vif_plug_linux_bridge_privileged]
     helper_command= privsep-helper
 
-    [ pod_vif_nested ]
+    [pod_vif_nested]
     worker_nodes_subnets = {{.Values.config.podVifNested.workerNodesSubnets}}
 
-    [ binding ]
+    [binding]
     driver = kuryr.lib.binding.drivers.vlan
     link_iface = {{.Values.config.binding.linkIface}}
 
