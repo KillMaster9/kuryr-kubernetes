@@ -67,8 +67,8 @@ RUN cd /opt/kuryr-kubernetes/keystone/keystoneauth \
 
 COPY --from=builder /go/bin/kuryr-cni /iveth-cni
 COPY --from=builder /go/bin/coordinator /coordinator
-COPY cni-plugins/portmap  /portmap
-COPY cni-plugins/loopback  /loopback
+COPY /cni-plugins/portmap  /portmap
+COPY /cni-plugins/loopback  /loopback
 
 ARG CNI_DAEMON=True
 ENV CNI_DAEMON ${CNI_DAEMON}
