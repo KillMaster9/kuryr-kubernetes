@@ -1,4 +1,4 @@
-FROM golang:1.21 as builder
+FROM golang:1.21@sha256:13a7dc7b46068caeaf811cc8af56d394a89c97d9b194550f8be5a4de05ca5f99 as builder
 #FROM registry.cn-hangzhou.aliyuncs.com/testwydimage/docker.io.library.golang:1.21-alpine as builder
 
 WORKDIR /go/src/opendev.com/kuryr-kubernetes
@@ -22,7 +22,7 @@ RUN cd ./coordinator && \
     go mod tidy && \
     go build -o /go/bin/coordinator .
 
-FROM quay.io/centos/centos:stream8
+FROM quay.io/centos/centos:stream8@sha256:006cf9e1a950130a6ddf4c396871f555c80447ee7efb5996844789e038aad581
 LABEL authors="Antoni Segura Puimedon<toni@kuryr.org>, Michał Dulko<mdulko@redhat.com>"
 
 RUN curl -L --retry 5 https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-arm64-v1.1.1.tgz | tar -xz -C / ./loopback  ./portmap
