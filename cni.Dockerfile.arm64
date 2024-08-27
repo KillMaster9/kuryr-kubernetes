@@ -25,10 +25,6 @@ RUN cd ./coordinator && \
 FROM quay.io/centos/centos:stream8@sha256:006cf9e1a950130a6ddf4c396871f555c80447ee7efb5996844789e038aad581
 LABEL authors="Antoni Segura Puimedon<toni@kuryr.org>, Michał Dulko<mdulko@redhat.com>"
 
-RUN  mkdir -p cni-plugins/ && \
-     #curl -SL --retry 5 https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-arm64-v1.1.1.tgz | tar -xz -C cni-plugins/
-     tar -xzf /opt/kuryr-kubernetes/kuryr_patch/cni-plugins-linux-arm64-v1.1.1.tgz -C cni-plugins/
-
 ARG UPPER_CONSTRAINTS_FILE="https://releases.openstack.org/constraints/upper/xena"
 ARG OSLO_LOCK_PATH=/var/kuryr-lock
 ARG RDO_REPO=https://repos.fedorapeople.org/repos/openstack/archived/openstack-xena/rdo-release-xena-1.el8.noarch.rpm
@@ -64,7 +60,11 @@ RUN cd /opt/kuryr-kubernetes/keystone/keystoneauth \
     && python3 setup.py install \
     && cd  /opt/kuryr-kubernetes/keystone/keystonemiddleware \
     && python3 setup.py install \
-    && rm -rf /opt/kuryr-kubernetes 
+    && rm -rf /opt/kuryr-kubernetes
+
+RUN  mkdir -p cni-plugins/ && \
+     #curl -SL --retry 5 https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-arm64-v1.1.1.tgz | tar -xz -C cni-plugins/
+     tar -xzf /opt/kuryr-kubernetes/kuryr_patch/cni-plugins-linux-arm64-v1.1.1.tgz -C cni-plugins/
 
 COPY --from=builder /go/bin/kuryr-cni /iveth-cni
 COPY --from=builder /go/bin/coordinator /coordinator
