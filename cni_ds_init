@@ -8,7 +8,7 @@ function cleanup() {
 
 function deploy() {
     # Copy the binary into the designated location
-    cp /iveth-cni "/opt/cni/bin/kuryr-cni"
+    cp /iveth-cni "/opt/cni/bin/iveth-cni"
     chmod +x /opt/cni/bin/iveth-cni
     cp /coordinator "/opt/cni/bin/coordinator"
     chmod +x /opt/cni/bin/coordinator

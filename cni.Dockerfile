@@ -56,7 +56,7 @@ COPY --from=builder /go/bin/kuryr-cni /iveth-cni
 COPY --from=builder /go/bin/coordinator /coordinator
 
 ARG CNI_DAEMON=True
-ENV CNI_DAEMON ${CNI_DAEMON}
+ENV CNI_DAEMON=${CNI_DAEMON}
 ENV OSLO_LOCK_PATH=${OSLO_LOCK_PATH}
 
 ENTRYPOINT [ "cni_ds_init" ]

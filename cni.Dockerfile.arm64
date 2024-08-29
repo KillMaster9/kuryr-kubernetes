@@ -48,7 +48,7 @@ COPY . /opt/kuryr-kubernetes
 RUN chmod 777 /opt/kuryr-kubernetes/cni_ds_init
 
 RUN pip3 --no-cache-dir install -U pip \
-    && python3 -m pip --no-cache-dir install -c $UPPER_CONSTRAINTS_FILE /opt/kuryr-kubernetes \
+    && python3 -m pip  install -c $UPPER_CONSTRAINTS_FILE /opt/kuryr-kubernetes \
     && cp /opt/kuryr-kubernetes/cni_ds_init /usr/bin/cni_ds_init \
     && mkdir -p /etc/kuryr-cni \
     && cp /opt/kuryr-kubernetes/etc/cni/net.d/* /etc/kuryr-cni \
@@ -59,8 +59,8 @@ RUN pip3 --no-cache-dir install -U pip \
 RUN cd /opt/kuryr-kubernetes/keystone/keystoneauth \
     && python3 setup.py install \
     && cd  /opt/kuryr-kubernetes/keystone/keystonemiddleware \
-    && python3 setup.py install \
-    && rm -rf /opt/kuryr-kubernetes
+    && python3 setup.py install
+
 
 RUN  mkdir -p /cni-plugins/ && \
      #curl -SL --retry 5 https://github.com/containernetworking/plugins/releases/download/v1.1.1/cni-plugins-linux-arm64-v1.1.1.tgz | tar -xz -C cni-plugins/
@@ -68,13 +68,15 @@ RUN  mkdir -p /cni-plugins/ && \
 
 RUN if [ -f /cni-plugins/portmap ];then cp -f /cni-plugins/portmap /portmap;fi && \
     if [ -f /cni-plugins/loopback ];then cp -f /cni-plugins/loopback /loopback;fi && \
-    if [ ! -f /cni-plugins/portmap ];then echo $(ls /cni-plugins/*) ;fi
+    if [ ! -f /cni-plugins/portmap ];then echo $(ls /cni-plugins/*) ;fi && \
+    rm -rf /opt/kuryr-kubernetes && \
+    rm -rf /cni-plugins
 
 COPY --from=builder /go/bin/kuryr-cni /iveth-cni
 COPY --from=builder /go/bin/coordinator /coordinator
 
 ARG CNI_DAEMON=True
-ENV CNI_DAEMON ${CNI_DAEMON}
+ENV CNI_DAEMON=${CNI_DAEMON}
 ENV OSLO_LOCK_PATH=${OSLO_LOCK_PATH}
 
 ENTRYPOINT [ "cni_ds_init" ]
