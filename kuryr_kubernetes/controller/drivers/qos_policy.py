@@ -39,7 +39,7 @@ class QosPolicyDriver(base.QosPolicyDriver):
         self.os_net = clients.get_network_client()
         self.kubernetes = clients.get_kubernetes_client()
 
-    def create_qos_policy_rule(self, pod, qos_policy):
+    def create_qos_policy_rule(self, pod, qos_policy, project_id):
         ingress_rate, egress_rate = self.get_pod_limit_rate(pod)
 
         if ingress_rate is not None:
@@ -51,7 +51,8 @@ class QosPolicyDriver(base.QosPolicyDriver):
 
             ingress_rule = {
                 "max_kbps": in_rate,
-                "direction": "ingress"
+                "direction": "ingress",
+                "tenant_id": project_id
             }
             ingress_policy_rule = self.os_net.create_qos_bandwidth_limit_rule(qos_policy.id, **ingress_rule)
             LOG.debug("pod %s: ingress rate rule has been created, %s", pod['metadata']['name'], ingress_policy_rule)
@@ -65,14 +66,15 @@ class QosPolicyDriver(base.QosPolicyDriver):
 
             egress_rule = {
                 "max_kbps": eg_rate,
-                "direction": "egress"
+                "direction": "egress",
+                "tenant_id": project_id
             }
             egress_policy_rule = self.os_net.create_qos_bandwidth_limit_rule(qos_policy, **egress_rule)
             LOG.debug("pod %s: egress rate rule has been created, %s", pod['metadata']['name'], egress_policy_rule)
 
         return qos_policy
 
-    def update_qos_policy_rule(self, pod, qos_policy):
+    def update_qos_policy_rule(self, pod, qos_policy, project_id):
         rules = {}
         try:
             qos_policy_rules = self.os_net.qos_bandwidth_limit_rules(qos_policy=qos_policy.id)
@@ -83,7 +85,7 @@ class QosPolicyDriver(base.QosPolicyDriver):
         for rule in qos_policy_rules:
             self.os_net.delete_qos_bandwidth_limit_rule(rule.id, qos_policy.id)
 
-        qos_policy = self.create_qos_policy_rule(pod, qos_policy)
+        qos_policy = self.create_qos_policy_rule(pod, qos_policy, project_id)
 
         return qos_policy
 
@@ -199,10 +201,10 @@ class QosPolicyDriver(base.QosPolicyDriver):
             # Create Qos policy, qos policy name key is owner name.
             qos_policy = self.create_qos_policy(pod, project_id)
             # Create Qos policy rule, need ingress rate or egress rate
-            qos_policy = self.create_qos_policy_rule(pod, qos_policy)
+            qos_policy = self.create_qos_policy_rule(pod, qos_policy, project_id)
 
         elif qos_policy is not None and changed is True:
-            qos_policy = self.update_qos_policy_rule(pod, qos_policy)
+            qos_policy = self.update_qos_policy_rule(pod, qos_policy, project_id)
 
         return qos_policy
 
