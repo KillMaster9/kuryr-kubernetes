@@ -126,7 +126,7 @@ K8S_OPERATOR_EXISTS = 'exists'
 # Inspur CLoud defined
 K8S_TAG_PREFIX = 'k8s'
 K8s_ANNOTATION_POD_RUNTIME_ID = ICR_K8S_ANNOTATION_PREFIX + 'runtime-id'
-K8s_ANNOTATION_PROJECT = ICR_K8S_ANNOTATION_PREFIX + 'vdc-id'
+K8s_ANNOTATION_VDC_ID = ICR_K8S_ANNOTATION_PREFIX + 'vdc-id'
 K8S_SYSTEM_NAMESPACE = ['kube-system', 'node-feature-discovery', 'ingress-nginx']
 
 K8s_ANNOTATION_POD_SUBNET = 'cni.iveth.inspur.org/pod-subnet'
@@ -134,6 +134,7 @@ K8S_ANNOTATION_IP_ADDRESS = 'cni.iveth.inspur.org/ip_address'
 K8S_ANNOTATION_IP_POOL = 'cni.iveth.inspur.org/ip_pool'
 K8S_ANNOTATION_INGRESS_RATE = 'cni.iveth.inspur.org/ingress_rate'
 K8S_ANNOTATION_EGRESS_RATE = 'cni.iveth.inspur.org/egress_rate'
+K8s_ANNOTATION_PROJECT = 'cni.iveth.inspur.org/project-id'
 
 USERSPACE_DRIVERS = ['vfio-pci', 'uio', 'uio_pci_generic', 'igb_uio']
 MELLANOX_DRIVERS = ['mlx4_core', 'mlx5_core']

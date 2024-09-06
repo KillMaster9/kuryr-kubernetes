@@ -723,8 +723,17 @@ def get_port_tag(pod):
         runtime_id = data['clusterId']
         if runtime_id is None:
             return None
+    vdc_id = namespace['metadata'].get('annotations', {}).get(constants.K8s_ANNOTATION_VDC_ID)
+    if not vdc_id:
+        is_not_system = "disable"
 
-    return [is_not_system, runtime_id, ns_name, pod_name]
+    is_not_system = "en:{}".format(is_not_system)
+    runtime_id = "rt:{}".format(runtime_id)
+    ns_name = "ns:{}".format(ns_name)
+    pod_name = "pd:{}".format(pod_name)
+    vdc_id = "vdc:{}".format(vdc_id)
+
+    return [is_not_system, vdc_id, runtime_id, ns_name, pod_name]
 
 
 def get_ickster_configmap(namespace, name):
