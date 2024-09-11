@@ -1061,9 +1061,10 @@ class NestedVIFPool(BaseVIFPool):
                              else '')
                 if config.CONF.kubernetes.port_debug:
                     try:
-                        os_net.update_port(port_id,
-                                           device_id='',
-                                           name=port_name)
+                        port = os_net.update_port(port_id,
+                                                  device_id='',
+                                                  name=port_name)
+                        os_net.set_tags(port, tags=None)
                     except os_exc.SDKException:
                         LOG.warning("Error changing name for port %s to be "
                                     "reused, put back on the cleanable "
