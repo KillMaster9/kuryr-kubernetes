@@ -1315,7 +1315,7 @@ class NestedVIFPool(BaseVIFPool):
                     self._drv_vif._release_vlan_id(
                         subport_info[port_id]['segmentation_id'])
                     os_net.delete_port(port_id)
-                    del self._existing_vifs[port_id]
+                    # TODO: Remove this when the bug is fixe del self._existing_vifs[port_id]
                 except KeyError:
                     LOG.debug('Port %s is not in the ports list. subPort info is %s', port_id, subport_info[port_id])
                 except (os_exc.SDKException, os_exc.HttpException):
@@ -1324,7 +1324,7 @@ class NestedVIFPool(BaseVIFPool):
                 LOG.debug('Deleting leftover port %s, subPort info is %s', port_id, subport_info[port_id])
 
             # 2. the trunkport is deleted, but the subport has leftoverd
-            elif not port.binding_host_id and port.name == constants.KURYR_PORT_NAME \
+            elif not port.binding_host_id and port.name == constants.KURYR_PORT_NAME or port.name.startswith('k8s') \
                     and port.device_owner not in ['trunk:subport', kl_const.DEVICE_OWNER]:
                 try:
                     os_net.delete_port(port.id)
@@ -1355,20 +1355,23 @@ class NestedVIFPool(BaseVIFPool):
                 LOG.debug("Problem Get the trunk port . ")
 
             for trunk in existing_trunks:
-                if trunk.status == 'DOWN' or len(trunk.sub_ports) == 0:
+                if trunk.status == 'DOWN' and len(trunk.sub_ports) == 0:
                     if trunk.id not in previous_ports_to_remove:
                         previous_ports_to_remove.append(trunk.id)
                         continue
 
                     try:
+                        previous_ports_to_remove.remove(trunk.id)
                         os_net.delete_trunk(trunk.id)
+                        LOG.debug(f"Deleting trunkport {trunk.id} because it has no subports")
+                    except os_exc.NotFoundException:
+                        if trunk.id in previous_ports_to_remove:
+                            previous_ports_to_remove.remove(trunk.id)
+                        LOG.debug("Trunkport %s has already been deleted", trunk.id)
                     except os_exc.SDKException:
                         LOG.debug("Problem deleting trunk port %s. "
-                                  "Skipping. It will be retried in %s "
+                                  "Skipping. It will be retried in 600 "
                                   " seconds , NODE_PORTS_CLEAN_FREQUENCY", trunk.id)
-                    else:
-                        previous_ports_to_remove.remove(trunk.id)
-                        LOG.debug(f"Deleting trunkport {trunk.id} because it has no subports")
 
 
 class MultiVIFPool(base.VIFPoolDriver):
