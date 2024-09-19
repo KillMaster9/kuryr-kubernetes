@@ -355,8 +355,9 @@ def get_k8s_resource(resource_path):
     try:
         k8s_resource = kubernetes.get(resource_path)
     except k_exc.K8sResourceNotFound:
-        LOG.exception('Kubernetes CRD not found')
+        LOG.exception('Kubernetes pod %s not found', resource_path)
         return k8s_resource
+
     return k8s_resource
 
 
@@ -736,6 +737,50 @@ def get_port_tag(pod):
     return [is_not_system, vdc_id, runtime_id, ns_name, pod_name]
 
 
+def get_runtime_id_from_tags(tags):
+    """
+    从get_port_tag函数返回的标签列表中提取runtime_id。
+    :param tags: list, 由get_port_tag函数返回的标签列表
+    :return: str, 提取到的runtime_id值
+    """
+    for tag in tags:
+        if tag.startswith('rt:'):
+            return tag.split(':')[1]
+    return None
+
+
+def get_pod_name_from_tags(tags):
+    """
+    从get_port_tag函数返回的标签列表中提取runtime_id。
+    :param tags: list, 由get_port_tag函数返回的标签列表
+    :return: str, 提取到的runtime_id值
+    """
+    for tag in tags:
+        if tag.startswith('pd:'):
+            return tag.split(':')[1]
+    return None
+
+
+def get_pod_namespace_from_tags(tags):
+    """
+    从get_port_tag函数返回的标签列表中提取runtime_id。
+    :param tags: list, 由get_port_tag函数返回的标签列表
+    :return: str, 提取到的runtime_id值
+    """
+    for tag in tags:
+        if tag.startswith('ns:'):
+            return tag.split(':')[1]
+    return None
+
+
+def get_cluster_id():
+    cluster_config = get_ickster_configmap('kube-system', 'icks-cluster-info')
+    if cluster_config is None:
+        return None
+
+    return cluster_config.get('clusterId')
+
+
 def get_ickster_configmap(namespace, name):
     url = constants.K8S_API_NAMESPACES + '/{}/configmaps/{}'.format(namespace, name)
     configmap = get_k8s_resource(url)
@@ -865,3 +910,20 @@ def is_subnet_enabled(pod, subnet_id):
                       reason='CreatingNetworkFail',
                       message='unabled to fetch subnet: fail to get subnet {}, subnet not found'.format(subnet_id))
         raise
+
+
+def get_pod(pod_name, pod_namespace):
+    not_found = False
+    pod_path = '{}/namespaces/{}/pods/{}'.format(constants.K8S_API_BASE, pod_namespace, pod_name)
+    kubernetes = clients.get_kubernetes_client()
+    k8s_resource = {}
+    try:
+        k8s_resource = kubernetes.get(pod_path)
+    except k_exc.K8sResourceNotFound:
+        not_found = True
+        LOG.exception('Kubernetes pod %s not found', pod_path)
+        return k8s_resource, not_found
+    except k_exc.K8sClientException:
+        LOG.exception('Exception during fetch Kubernetes pod %s', pod_path)
+
+    return k8s_resource, not_found

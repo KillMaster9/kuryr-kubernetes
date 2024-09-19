@@ -897,6 +897,7 @@ class NestedVIFPool(BaseVIFPool):
 
     def __init__(self):
         super(NestedVIFPool, self).__init__()
+        self._cluster_id = c_utils.get_cluster_id()
         # Start the pool manager so that pools can be populated/freed on
         # demand
         if config.CONF.kubernetes.enable_manager:
@@ -1295,7 +1296,13 @@ class NestedVIFPool(BaseVIFPool):
     def _cleanup_leftover_ports(self):
         subport_info = {}
         os_net = clients.get_network_client()
+
+        if self._cluster_id is None:
+            self._cluster_id = c_utils.get_cluster_id()
+
         existing_ports = os_net.ports(status='DOWN')
+        if not existing_ports:
+            return
 
         existing_trunks = os_net.trunks(status='ACTIVE')
         for trunk in existing_trunks:
@@ -1306,10 +1313,29 @@ class NestedVIFPool(BaseVIFPool):
                 }
 
         for port in existing_ports:
+            cluster_id = c_utils.get_runtime_id_from_tags(port.tags)
+            if cluster_id is None or cluster_id != self._cluster_id:
+                continue
+
             # 1. the port pool has leftover port
             if not port.binding_host_id and subport_info.get(port.id) \
                     and port.device_owner in ['', 'trunk:subport', kl_const.DEVICE_OWNER]:
                 port_id = port.id
+                pod_name = c_utils.get_pod_name_from_tags(port.tags)
+                pod_namespace = c_utils.get_pod_namespace_from_tags(port.tags)
+
+                if not pod_name or not pod_namespace:
+                    continue
+
+                if pod_name and pod_namespace:
+                    result, is_pod_not_found = c_utils.get_pod(pod_name, pod_namespace)
+                    if is_pod_not_found:
+                        LOG.debug('Deleting leftover port %s', port)
+                    else:
+                        LOG.debug('Pod %s in namespace %s was found, skipping deletion of port %s', pod_name,
+                                  pod_namespace, port)
+                        continue
+
                 try:
                     self._drv_vif._remove_subport(subport_info[port_id]['trunk_id'], port_id)
                     self._drv_vif._release_vlan_id(
@@ -1321,7 +1347,7 @@ class NestedVIFPool(BaseVIFPool):
                 except (os_exc.SDKException, os_exc.HttpException):
                     LOG.warning('Error removing the subport %s', port_id)
                     continue
-                LOG.debug('Deleting leftover port %s, subPort info is %s', port_id, subport_info[port_id])
+                LOG.debug('Deleting leftover port %s, subPort info is %s', port, subport_info[port_id])
 
             # 2. the trunkport is deleted, but the subport has leftoverd
             elif not port.binding_host_id and port.name == constants.KURYR_PORT_NAME or port.name.startswith('k8s') \
