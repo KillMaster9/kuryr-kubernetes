@@ -315,7 +315,7 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
 
         pool_size = self._get_pool_size(pool_key)
         if pool_size < oslo_cfg.CONF.vif_pool.ports_pool_min:
-            num_ports = max(oslo_cfg.CONF.vif_pool.ports_pool_batch,
+            num_ports = max(oslo_cfg.CONF.vif_pool.ports_pool_batch/2,
                             oslo_cfg.CONF.vif_pool.ports_pool_min - pool_size)
             try:
                 vifs = self._drv_vif.request_vifs(
@@ -505,6 +505,8 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
                 if (port.id not in in_use_ports and
                         port.device_owner in ['trunk:subport',
                                               kl_const.DEVICE_OWNER]):
+                    if len(port.fixed_ips) == 0:
+                        continue
                     subports[port.id] = port
                     # NOTE(ltomasbo): _get_subnet can be costly as it
                     # needs to call neutron to get network and subnet
