@@ -1,0 +1,42 @@
+#FROM golang:1.21-alpine as builder
+FROM registry.cn-hangzhou.aliyuncs.com/testwydimage/docker.io.library.golang:1.21-alpine as builder
+
+WORKDIR /go/src/opendev.com/kuryr-kubernetes
+COPY . .
+
+RUN export CGO_ENABLED=0 \
+    && GO111MODULE=auto go build -o /go/bin/kuryr-cni ./kuryr_cni/pkg/*
+
+RUN cd ./coordinator \
+    && export GOPROXY=https://goproxy.cn,direct \
+    && go mod tidy \
+    && export CGO_ENABLED=0 \
+    && GO111MODULE=auto go build -o /go/bin/coordinator .
+
+FROM registry.cn-beijing.aliyuncs.com/killmaster/kuryr-kubernetes:cni-base
+
+RUN chmod 777 /opt/kuryr-kubernetes/cni_ds_init
+
+RUN pip3 --no-cache-dir install -U pip \
+    && python3 -m pip --no-cache-dir install -c $UPPER_CONSTRAINTS_FILE /opt/kuryr-kubernetes \
+    && cp /opt/kuryr-kubernetes/cni_ds_init /usr/bin/cni_ds_init \
+    && mkdir -p /etc/kuryr-cni \
+    && cp /opt/kuryr-kubernetes/etc/cni/net.d/* /etc/kuryr-cni \
+    && dnf -y remove gcc gcc-c++ python3-devel git \
+    && dnf clean all \
+    && mkdir ${OSLO_LOCK_PATH}
+
+RUN cd /opt/kuryr-kubernetes/keystone/keystoneauth \
+    && python3 setup.py install \
+    && cd  /opt/kuryr-kubernetes/keystone/keystonemiddleware \
+    && python3 setup.py install \
+    && rm -rf /opt/kuryr-kubernetes 
+
+COPY --from=builder /go/bin/kuryr-cni /iveth-cni
+COPY --from=builder /go/bin/coordinator /coordinator
+
+ARG CNI_DAEMON=True
+ENV CNI_DAEMON=${CNI_DAEMON}
+ENV OSLO_LOCK_PATH=${OSLO_LOCK_PATH}
+
+ENTRYPOINT [ "cni_ds_init" ]
