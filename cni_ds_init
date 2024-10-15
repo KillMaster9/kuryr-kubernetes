@@ -16,6 +16,7 @@ function deploy() {
     chmod +x /opt/cni/bin/loopback
     cp /portmap  "/opt/cni/bin/portmap"
     chmod +x /opt/cni/bin/portmap
+    if [ ! -f /etc/cni/net.d/10-iveth.conflist ]; then
     cat >> /etc/cni/net.d/10-iveth.conflist << EOF
 {
   "name": "iveth",
@@ -37,6 +38,7 @@ function deploy() {
   ]
 }
 EOF
+fi
 #    if [ -f /etc/cni/net.d/kuryr.conflist.template ]; then
 #      cp /etc/cni/net.d/kuryr.conflist.template /etc/cni/net.d/10-kuryr.conflist
 #    else

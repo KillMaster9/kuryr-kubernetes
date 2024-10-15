@@ -4,10 +4,12 @@ FROM registry.cn-hangzhou.aliyuncs.com/testwydimage/docker.io.library.golang:1.2
 WORKDIR /go/src/opendev.com/kuryr-kubernetes
 COPY . .
 
-RUN GO111MODULE=auto go build -o /go/bin/kuryr-cni ./kuryr_cni/pkg/*
+RUN export CGO_ENABLED=0 \
+    && GO111MODULE=auto go build -o /go/bin/kuryr-cni ./kuryr_cni/pkg/*
 
 RUN cd ./coordinator \
     && go mod tidy \
+    && export CGO_ENABLED=0 \
     && GO111MODULE=auto go build -o /go/bin/coordinator .
 
 FROM quay.io/centos/centos:stream8

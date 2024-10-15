@@ -712,7 +712,13 @@ def get_port_tag(pod):
     if data is None:
         return None
 
-    system_namespace = data['system-namespace']
+    # system_namespace = ""
+    try:
+        system_namespace = data['system-namespace']
+    except KeyError:
+        system_namespace = ""
+        LOG.warning("system-namespace not found in ickster configmap")
+
     if namespace in system_namespace.split(','):
         is_not_system = "disable"
 

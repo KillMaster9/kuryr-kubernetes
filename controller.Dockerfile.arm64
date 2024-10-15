@@ -1,4 +1,4 @@
-FROM quay.io/centos/centos:stream8@sha256:006cf9e1a950130a6ddf4c396871f555c80447ee7efb5996844789e038aad581
+FROM quay.io/centos/centos:stream8
 LABEL authors="Antoni Segura Puimedon<toni@kuryr.org>, Michał Dulko<mdulko@redhat.com>"
 
 ARG UPPER_CONSTRAINTS_FILE="https://releases.openstack.org/constraints/upper/xena"

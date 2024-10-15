@@ -24,6 +24,7 @@ RUN cd ./coordinator && \
     go mod tidy && \
     go build -o /go/bin/coordinator  .
 
+
 FROM quay.io/centos/centos:stream8
 LABEL authors="Antoni Segura Puimedon<toni@kuryr.org>, Michał Dulko<mdulko@redhat.com>"
 

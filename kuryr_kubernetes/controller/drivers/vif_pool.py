@@ -47,7 +47,7 @@ vif_pool_driver_opts = [
     oslo_cfg.IntOpt('ports_pool_max',
                     help=_("Set a maximum amount of ports per pool. "
                            "0 to disable"),
-                    default=5),
+                    default=10),
     oslo_cfg.IntOpt('ports_pool_min',
                     help=_("Set a target minimum size of the pool of ports"),
                     default=5),
@@ -57,7 +57,7 @@ vif_pool_driver_opts = [
     oslo_cfg.IntOpt('ports_pool_update_frequency',
                     help=_("Minimum interval (in seconds) "
                            "between pool updates"),
-                    default=10),
+                    default=5),
     oslo_cfg.DictOpt('pools_vif_drivers',
                      help=_("Dict with the pool driver and pod driver to be "
                             "used. If not set, it will take them from the "
@@ -227,11 +227,11 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
             # NOTE(dulek): We're passing raise_not_ready=False because this
             #              will be run outside of handlers thread, so raising
             #              it will only result in an ugly log from eventlet.
-            if eventlet.spawn(self._populate_pool, pool_key, pod, subnets,
-                              tuple_sg,
-                              raise_not_ready=False):
-                return self._get_port_from_pool(pool_key, pod, subnets,
-                                                tuple_sg)
+            if self._bulk_port_num.get(pool_key) is None:
+                self._bulk_port_num[pool_key] = oslo_cfg.CONF.vif_pool.ports_pool_batch
+
+            eventlet.spawn(self._populate_pool, pool_key, pod, subnets,
+                           security_groups)
             raise
 
     def _get_port_from_pool(self, pool_key, pod, subnets, security_groups):
@@ -313,9 +313,13 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
                 return False
         self._last_update[pool_key] = {security_groups: now}
 
+        bulk_port_num = self._bulk_port_num.get(pool_key)
+        if bulk_port_num is None:
+            bulk_port_num = oslo_cfg.CONF.vif_pool.ports_pool_batch
+
         pool_size = self._get_pool_size(pool_key)
         if pool_size < oslo_cfg.CONF.vif_pool.ports_pool_min:
-            num_ports = max(oslo_cfg.CONF.vif_pool.ports_pool_batch/2,
+            num_ports = max(bulk_port_num,
                             oslo_cfg.CONF.vif_pool.ports_pool_min - pool_size)
             try:
                 vifs = self._drv_vif.request_vifs(
@@ -325,10 +329,14 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
                     security_groups=security_groups,
                     num_ports=num_ports)
             except os_exc.SDKException as exc:
+                msg = (f'No more IP address available on subnet , '
+                       f'Please expand the IP address.')
                 kubernetes.add_event(
                     pod, 'FailToPopulateVIFPool',
-                    f'There was an error during populating VIF pool '
-                    f'for pod: {exc.message}', type_='Warning')
+                    msg, type_='Warning')
+                if "No more IP" in str(exc):
+                    if self._bulk_port_num.get(pool_key) is not None:
+                        self._bulk_port_num[pool_key] = int(self._bulk_port_num[pool_key] / 2)
                 raise
 
             for vif in vifs:
@@ -448,6 +456,7 @@ class BaseVIFPool(base.VIFPoolDriver, metaclass=abc.ABCMeta):
         self._last_update = collections.defaultdict()
         self._lock = threading.Lock()
         self._populate_pool_lock = collections.defaultdict(threading.Lock)
+        self._bulk_port_num = collections.defaultdict()
 
     def _get_trunks_info(self):
         """Returns information about trunks and their subports.
@@ -1067,15 +1076,22 @@ class NestedVIFPool(BaseVIFPool):
                         port = os_net.update_port(port_id,
                                                   device_id='',
                                                   name=port_name)
-                        os_net.set_tags(port, tags=None)
+                        os_net.set_tags(port, tags=[])
                     except os_exc.SDKException:
                         LOG.warning("Error changing name for port %s to be "
                                     "reused, put back on the cleanable "
                                     "pool.", port_id)
-                        continue
+
                 self._available_ports_pools.setdefault(
                     pool_key, {}).setdefault(
                     sg_current.get(port_id), []).append(port_id)
+
+                bulk_ports = self._get_pool_size(pool_key)
+                if bulk_ports >= oslo_cfg.CONF.vif_pool.ports_pool_batch:
+                    bulk_ports = oslo_cfg.CONF.vif_pool.ports_pool_batch
+
+                if self._bulk_port_num.get(pool_key) is not None:
+                    self._bulk_port_num[pool_key] = bulk_ports
             else:
                 trunk_id = self._get_trunk_id(pool_key)
                 try:
@@ -1316,8 +1332,6 @@ class NestedVIFPool(BaseVIFPool):
 
         for port in existing_ports:
             cluster_id = c_utils.get_runtime_id_from_tags(port.tags)
-            if cluster_id is None or cluster_id != self._cluster_id:
-                continue
 
             # 1. the port pool has leftover port
             if not port.binding_host_id and subport_info.get(port.id) \
@@ -1327,6 +1341,9 @@ class NestedVIFPool(BaseVIFPool):
                 pod_namespace = c_utils.get_pod_namespace_from_tags(port.tags)
 
                 if not pod_name or not pod_namespace:
+                    continue
+
+                if cluster_id is None or cluster_id != self._cluster_id:
                     continue
 
                 if pod_name and pod_namespace:

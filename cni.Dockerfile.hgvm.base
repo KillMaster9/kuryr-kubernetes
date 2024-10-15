@@ -15,10 +15,14 @@ RUN cd ./coordinator \
 
 FROM registry.cn-beijing.aliyuncs.com/killmaster/kuryr-kubernetes:cni-base
 
-RUN chmod 777 /opt/kuryr-kubernetes/cni_ds_init
+ARG OSLO_LOCK_PATH=/var/kuryr-lock
+RUN chmod 777  /opt/kuryr-kubernetes/cni_ds_init
+
+RUN cp /opt/kuryr-kubernetes/loopback     /loopback
+RUN cp /opt/kuryr-kubernetes/portmap     /portmap
 
 RUN pip3 --no-cache-dir install -U pip \
-    && python3 -m pip --no-cache-dir install -c $UPPER_CONSTRAINTS_FILE /opt/kuryr-kubernetes \
+    && python3 -m pip --no-cache-dir install -c /opt/kuryr-kubernetes/constraints.txt  /opt/kuryr-kubernetes  \
     && cp /opt/kuryr-kubernetes/cni_ds_init /usr/bin/cni_ds_init \
     && mkdir -p /etc/kuryr-cni \
     && cp /opt/kuryr-kubernetes/etc/cni/net.d/* /etc/kuryr-cni \
@@ -30,7 +34,7 @@ RUN cd /opt/kuryr-kubernetes/keystone/keystoneauth \
     && python3 setup.py install \
     && cd  /opt/kuryr-kubernetes/keystone/keystonemiddleware \
     && python3 setup.py install \
-    && rm -rf /opt/kuryr-kubernetes 
+    && rm -rf /opt/kuryr-kubernetes
 
 COPY --from=builder /go/bin/kuryr-cni /iveth-cni
 COPY --from=builder /go/bin/coordinator /coordinator
