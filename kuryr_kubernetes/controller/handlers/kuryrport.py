@@ -29,6 +29,7 @@ from oslo_concurrency import lockutils
 
 LOG = logging.getLogger(__name__)
 KURYRPORT_URI = constants.K8S_API_CRD_NAMESPACES + '/{ns}/kuryrports/{crd}'
+POD_URI = constants.K8S_API_BASE + '/{ns}/pods/{pod}'
 
 
 class KuryrPortHandler(k8s_base.ResourceEventHandler):
@@ -75,7 +76,7 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
 
         vifs = {ifname: {'default': data['default'],
                          'vif': objects.base.VersionedObject
-                             .obj_from_primitive(data['vif'])}
+                         .obj_from_primitive(data['vif'])}
                 for ifname, data in kuryrport_crd['status']['vifs'].items()}
 
         if all([v['vif'].active for v in vifs.values()]):
@@ -100,6 +101,14 @@ class KuryrPortHandler(k8s_base.ResourceEventHandler):
                     except os_exc.ResourceNotFound:
                         LOG.debug("Port not found, possibly already deleted. "
                                   "No need to activate it")
+                        try:
+                            self.k8s.delete(POD_URI
+                                            .format(ns=pod["metadata"]["namespace"],
+                                                    pod=pod["metadata"]["name"]))
+                        except k_exc.K8sClientException:
+                            LOG.exception("Could not remove pod %s.",
+                                          pod['metadata']['name'])
+
         finally:
             if changed:
                 project_id = self._drv_project.get_project(pod)

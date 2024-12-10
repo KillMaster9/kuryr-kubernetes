@@ -99,6 +99,9 @@ class NeutronPodVIFDriver(base.PodVIFDriver):
         os_net = clients.get_network_client()
         try:
             port = os_net.get_port(vif.id)
+        except os_exc.ResourceNotFound:
+            LOG.debug("Port %s not found, retrying.", vif.id)
+            raise os_exc.ResourceNotFound
         except os_exc.SDKException:
             LOG.debug("Unable to obtain port information, retrying.")
             raise k_exc.ResourceNotReady(vif)

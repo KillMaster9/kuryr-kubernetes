@@ -1008,8 +1008,7 @@ class NestedVIFPool(BaseVIFPool):
 
         if config.CONF.kubernetes.port_debug:
             os_net.update_port(port_id,
-                               name=c_utils.get_port_name(pod),
-                               device_id=pod['metadata']['uid'])
+                               name=c_utils.get_port_name(pod))
         # check if the pool needs to be populated
         if (self._get_pool_size(pool_key) <
                 oslo_cfg.CONF.vif_pool.ports_pool_min):
@@ -1390,7 +1389,7 @@ class NestedVIFPool(BaseVIFPool):
             LOG.debug("Periodic check of the trunk port and Subports. ")
 
             # 1. Check the leftover subports resources
-            self._cleanup_leftover_ports()
+            # self._cleanup_leftover_ports()
 
             # 2. Check the trunk port resource. when the trunk port status is Down or the subport length is zero
             # we can delete it.
